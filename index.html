@@ -487,7 +487,11 @@
                 <input type="checkbox" id="f-parcelado" onchange="toggleParcelado()" style="width:auto;margin:0;"> Parcelado
             </label>
             <div id="parcelas-campo" style="display:none;flex:1;">
-                <input type="number" id="f-parcelas" min="2" max="60" placeholder="Nº parcelas" style="margin-bottom:0;">
+                <input type="number" id="f-parcelas" min="2" max="60" placeholder="Nº parcelas"
+                    inputmode="numeric" pattern="[0-9]*"
+                    oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/^0+/,'')||''"
+                    onkeydown="return /[0-9]|Backspace|Delete|ArrowLeft|ArrowRight|Tab/.test(event.key)"
+                    style="margin-bottom:0;">
             </div>
         </div>
         <!-- Hint parcelamento -->
@@ -1324,7 +1328,7 @@ function abrirDrill(cat,tipo,periodo){
 //  LANÇAMENTOS
 // =====================================================
 function salvarLancamento(){
-    const idEx     = document.getElementById('f-id').value;
+    const idEx      = document.getElementById('f-id').value;
     const parcelado = document.getElementById('f-parcelado').checked;
     const nParcelas = parcelado ? parseInt(document.getElementById('f-parcelas').value || 1) : 1;
     const base = {
@@ -1338,23 +1342,46 @@ function salvarLancamento(){
     };
     if(!base.data || base.valor <= 0) return;
 
+    // Habilita campos que possam estar disabled antes de ler
+    document.getElementById('f-parcelado').disabled = false;
+    document.getElementById('f-parcelas').disabled  = false;
+
     const recriarFuturos = window._recriarParcelasFuturas;
 
     if(recriarFuturos){
-        // Edição "este e todos os futuros": regera parcelas a partir da data de referência
-        const grupoId  = window._parcelaGrupoAtual || base.id;
-        const dataRef  = window._parcelaDataRef || base.data;
-        // Calcula quantas parcelas restam (a partir da data de referência) usando a contagem original
-        const totalDoGrupo = bd.filter(x => x.parcelaGrupo === grupoId).length;
-        const jaPassaram   = bd.filter(x => x.parcelaGrupo === grupoId && x.data < dataRef).length;
-        const restantes    = Math.max(1, totalDoGrupo - jaPassaram + 1); // +1 = inclui o atual
+        const grupoId = window._parcelaGrupoAtual;
+        const dataRef = window._parcelaDataRef || base.data;
+        // nParcelas já foi lido do campo (calculado e exibido como somente leitura)
+        const restantes = nParcelas;
 
-        // Usa a data de referência como ponto de partida
-        base.data = dataRef;
-        base.id   = grupoId; // mantém o mesmo grupo
-        const novasParcelas = gerarParcelas(base, restantes);
-        // Substitui o grupo mantendo as parcelas já passadas
-        bd = bd.filter(x => !(x.parcelaGrupo === grupoId && x.data >= dataRef));
+        // Recria parcelas a partir da data de referência com numeração correta
+        const jaPassaram = window._parcelasPassadas || 0;
+        const totalFinal = jaPassaram + restantes;
+
+        const dia = parseInt(dataRef.split('-')[2]) || 1;
+        const [anoRef, mesRef] = dataRef.split('-').map(Number);
+        const novasParcelas = [];
+        for(let i = 0; i < restantes; i++){
+            let m = mesRef + i, a = anoRef;
+            while(m > 12){ m -= 12; a++; }
+            const dataP = `${a}-${String(m).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+            novasParcelas.push({
+                id:           Date.now() + i,
+                data:         dataP,
+                tipo:         base.tipo,
+                cat:          base.cat,
+                valor:        base.valor,
+                desc:         `${base.desc.replace(/ \(\d+\/\d+\)/,'')} (${jaPassaram + i + 1}/${totalFinal})`,
+                conta:        base.conta,
+                parcelaGrupo: grupoId
+            });
+        }
+
+        // Garante que parcelas já passadas mantêm a numeração original
+        bd.filter(x => x.parcelaGrupo === grupoId).forEach((x, idx) => {
+            x.desc = x.desc.replace(/ \(\d+\/\d+\)/, ` (${idx + 1}/${totalFinal})`);
+        });
+
         bd.push(...novasParcelas);
 
         // Limpa flags
@@ -1362,6 +1389,8 @@ function salvarLancamento(){
         window._parcelaGrupoAtual      = null;
         window._parcelaDataRef         = null;
         window._dadosParcelaEdicao     = null;
+        window._totalParcelasGrupo     = 0;
+        window._parcelasPassadas       = 0;
         _parcelaFuturaGrupo = null;
         _parcelaFuturaData  = null;
 
@@ -1378,7 +1407,6 @@ function salvarLancamento(){
         else bd.push(base);
     }
 
-    // Limpa flags de estado
     window._recriarParcelasFuturas = false;
     saveAll(); fecharModal('modalRegistro'); initFiltro(); render();
 }
@@ -1410,16 +1438,26 @@ function executarAcaoParcela(escopo){
 
     if(tipo === 'editar'){
         if(escopo === 'futuros'){
-            // Remove este e todos os futuros do mesmo grupo, reabre modal marcando o grupo
-            const grupo = item.parcelaGrupo;
+            const grupo   = item.parcelaGrupo;
             const dataRef = item.data;
-            // Salva os futuros que serão removidos para recriar após edição
+
+            // ── Salvar contagens ANTES de remover ──
+            const todoDoGrupo = bd.filter(x => x.parcelaGrupo === grupo);
+            const passadas    = bd.filter(x => x.parcelaGrupo === grupo && x.data < dataRef);
+            window._totalParcelasGrupo = todoDoGrupo.length;
+            window._parcelasPassadas   = passadas.length;
+
             _parcelaFuturaGrupo = grupo;
             _parcelaFuturaData  = dataRef;
+
+            // Remove este e todos os futuros (agora podemos remover com segurança)
             bd = bd.filter(x => !(x.parcelaGrupo === grupo && x.data >= dataRef));
             saveAll();
+        } else {
+            // "Apenas este mês" — não precisa de contagens
+            window._totalParcelasGrupo = 0;
+            window._parcelasPassadas   = 0;
         }
-        // Abre modal de edição normalmente (sem checkbox de parcelado, pois já existe)
         _abrirModalEdicaoSimples(id, escopo === 'futuros');
     } else {
         // Excluir
@@ -1446,14 +1484,42 @@ function _abrirModalEdicaoSimples(id, recriarFuturos){
     if(!dados) return;
 
     document.getElementById('modal-titulo').innerText = 'Editar Transação';
-    document.getElementById('f-id').value   = recriarFuturos ? '' : dados.id; // sem id = novo registro
+    document.getElementById('f-id').value   = recriarFuturos ? '' : dados.id;
     document.getElementById('f-tipo').value = dados.tipo; loadCats();
     loadContasSelect('f-conta', dados.conta);
     document.getElementById('f-cat').value  = dados.cat;
     document.getElementById('f-data').value = dados.data;
     document.getElementById('f-desc').value = dados.desc.replace(/ \(\d+\/\d+\)/, '');
     document.getElementById('f-valor').value = fmt(dados.valor).replace('R$','').trim();
-    document.getElementById('f-parcelado').checked = false; toggleParcelado();
+
+    const chkParcelado = document.getElementById('f-parcelado');
+    const campoParcelas = document.getElementById('f-parcelas');
+
+    if(recriarFuturos){
+        // "Este e todos os futuros": mostra checkbox marcado, calcula quantas restam, desabilita edição da qtd
+        const grupoId  = dados.parcelaGrupo || _parcelaFuturaGrupo;
+        const dataRef  = _parcelaFuturaData || dados.data;
+        const totalDoGrupo   = window._totalParcelasGrupo || 0;
+        const jaPassaram     = window._parcelasPassadas   || 0;
+        const restantes      = Math.max(1, totalDoGrupo - jaPassaram);
+
+        chkParcelado.checked  = true;
+        chkParcelado.disabled = true;          // não deixa desmarcar
+        document.getElementById('parcelas-campo').style.display = 'block';
+        document.getElementById('hint-parcelado').style.display = 'block';
+        campoParcelas.value    = restantes;
+        campoParcelas.disabled = true;         // qtd calculada automaticamente — só leitura
+        campoParcelas.title    = 'Quantidade de parcelas restantes calculada automaticamente';
+        document.getElementById('f-valor').placeholder = 'R$ 0,00 (valor por parcela)';
+    } else {
+        // "Apenas este mês": sem parcelamento — checkbox desmarcado e desabilitado
+        chkParcelado.checked  = false;
+        chkParcelado.disabled = true;          // não faz sentido parcelar de novo
+        document.getElementById('parcelas-campo').style.display = 'none';
+        document.getElementById('hint-parcelado').style.display = 'none';
+        campoParcelas.disabled = true;
+        document.getElementById('f-valor').placeholder = 'R$ 0,00';
+    }
 
     // Guarda flag para salvarLancamento saber se precisa recriar futuras
     window._recriarParcelasFuturas  = recriarFuturos;
@@ -1466,13 +1532,13 @@ function _abrirModalEdicaoSimples(id, recriarFuturos){
 
 function editarLancamento(id){
     const i = bd.find(x => x.id === id); if(!i) return;
-    window._dadosParcelaEdicao = i;   // guarda sempre para uso posterior
+    window._dadosParcelaEdicao = i;
 
     if(i.parcelaGrupo){
         _abrirEscolhaParcelaAcao('editar', id);
         return;
     }
-    // Lançamento simples — edição direta
+    // Lançamento simples — edição direta, campos todos habilitados
     window._recriarParcelasFuturas = false;
     document.getElementById('modal-titulo').innerText = 'Editar Transação';
     document.getElementById('f-id').value   = i.id;
@@ -1482,7 +1548,12 @@ function editarLancamento(id){
     document.getElementById('f-data').value = i.data;
     document.getElementById('f-desc').value = i.desc;
     document.getElementById('f-valor').value = fmt(i.valor).replace('R$','').trim();
-    document.getElementById('f-parcelado').checked = false; toggleParcelado();
+    document.getElementById('f-valor').placeholder = 'R$ 0,00';
+    const chk = document.getElementById('f-parcelado');
+    chk.checked = false; chk.disabled = false;
+    const parcCampo = document.getElementById('f-parcelas');
+    parcCampo.value = ''; parcCampo.disabled = false;
+    toggleParcelado();
     document.getElementById('modalRegistro').style.display = 'flex';
 }
 
@@ -1817,13 +1888,21 @@ function abrirModalRegistro(){
     document.getElementById('f-data').valueAsDate=new Date();
     document.getElementById('f-desc').value='';
     document.getElementById('f-valor').value='';
-    document.getElementById('f-parcelado').checked=false; toggleParcelado();
+    document.getElementById('f-valor').placeholder='R$ 0,00';
+    // Garante campos habilitados para novo lançamento
+    const chk = document.getElementById('f-parcelado');
+    chk.checked = false; chk.disabled = false;
+    const parcCampo = document.getElementById('f-parcelas');
+    parcCampo.value = ''; parcCampo.disabled = false;
+    toggleParcelado();
     loadCats(); loadContasSelect('f-conta');
     // Limpa flags de edição de parcela
     window._recriarParcelasFuturas = false;
-    window._parcelaGrupoAtual = null;
-    window._parcelaDataRef    = null;
-    window._dadosParcelaEdicao = null;
+    window._parcelaGrupoAtual      = null;
+    window._parcelaDataRef         = null;
+    window._dadosParcelaEdicao     = null;
+    window._totalParcelasGrupo     = 0;
+    window._parcelasPassadas       = 0;
     document.getElementById('modalRegistro').style.display='flex';
 }
 function abrirModalMeta(){
