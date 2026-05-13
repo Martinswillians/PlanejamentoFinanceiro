@@ -482,13 +482,18 @@
         <input type="text" id="f-desc" placeholder="Descrição">
         <input type="text" id="f-valor" oninput="maskMoeda(this)" placeholder="R$ 0,00">
         <!-- PARCELAMENTO -->
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.85rem;color:var(--muted);">
                 <input type="checkbox" id="f-parcelado" onchange="toggleParcelado()" style="width:auto;margin:0;"> Parcelado
             </label>
             <div id="parcelas-campo" style="display:none;flex:1;">
                 <input type="number" id="f-parcelas" min="2" max="60" placeholder="Nº parcelas" style="margin-bottom:0;">
             </div>
+        </div>
+        <!-- Hint parcelamento -->
+        <div id="hint-parcelado" style="display:none;background:#eaf4ff;border-left:3px solid #3498db;border-radius:8px;padding:9px 12px;margin-bottom:10px;font-size:0.78rem;color:#2980b9;line-height:1.5;">
+            💡 <b>Informe o nº de parcelas</b> e o <b>valor de cada parcela</b>.<br>
+            O sistema irá gerar automaticamente um lançamento por mês.
         </div>
         <button onclick="salvarLancamento()" style="width:100%;background:var(--success);color:white;padding:15px;border:none;border-radius:10px;font-weight:bold;">SALVAR</button>
         <button onclick="fecharModal('modalRegistro')" style="width:100%;margin-top:10px;border:none;background:none;color:var(--muted);">Cancelar</button>
@@ -618,6 +623,23 @@
         <input type="number" id="fr-dia" min="1" max="31" placeholder="Ex: 5">
         <button onclick="salvarRecorrente()" style="width:100%;background:var(--secondary);color:white;padding:15px;border:none;border-radius:10px;font-weight:bold;">SALVAR</button>
         <button onclick="fecharModal('modalRecorrente')" style="width:100%;margin-top:10px;border:none;background:none;color:var(--muted);">Cancelar</button>
+    </div>
+</div>
+
+<!-- Modal escolha ação parcelado -->
+<div class="modal" id="modalParcelaAcao">
+    <div class="modal-content" style="border-radius:20px 20px 0 0;">
+        <h3 id="parcela-acao-titulo" style="margin-bottom:6px;">✏️ Editar Parcela</h3>
+        <p id="parcela-acao-subtitulo" style="font-size:0.82rem;color:var(--muted);margin-bottom:18px;">Este lançamento faz parte de um parcelamento. Como deseja aplicar a alteração?</p>
+        <button id="btn-parcela-apenas-este" onclick="executarAcaoParcela('este')"
+            style="width:100%;background:var(--secondary);color:white;padding:14px;border:none;border-radius:10px;font-weight:bold;margin-bottom:10px;font-size:0.9rem;">
+            📌 Apenas este mês
+        </button>
+        <button id="btn-parcela-todos-futuros" onclick="executarAcaoParcela('futuros')"
+            style="width:100%;background:var(--primary);color:white;padding:14px;border:none;border-radius:10px;font-weight:bold;margin-bottom:10px;font-size:0.9rem;">
+            🔄 Este e todos os futuros
+        </button>
+        <button onclick="fecharModal('modalParcelaAcao')" style="width:100%;margin-top:4px;border:none;background:none;color:var(--muted);padding:10px;">Cancelar</button>
     </div>
 </div>
 
@@ -811,6 +833,13 @@ function renderRecorrentes(){
 function toggleParcelado(){
     const chk = document.getElementById('f-parcelado').checked;
     document.getElementById('parcelas-campo').style.display = chk ? 'block' : 'none';
+    document.getElementById('hint-parcelado').style.display = chk ? 'block' : 'none';
+    if(chk){
+        // Atualiza placeholder do campo valor para deixar claro que é por parcela
+        document.getElementById('f-valor').placeholder = 'R$ 0,00 (valor por parcela)';
+    } else {
+        document.getElementById('f-valor').placeholder = 'R$ 0,00';
+    }
 }
 function gerarParcelas(base, nParcelas){
     // Parcelas começam a partir do mês vigente (filtro selecionado)
@@ -1295,41 +1324,176 @@ function abrirDrill(cat,tipo,periodo){
 //  LANÇAMENTOS
 // =====================================================
 function salvarLancamento(){
-    const idEx=document.getElementById('f-id').value;
-    const nParcelas=document.getElementById('f-parcelado').checked?parseInt(document.getElementById('f-parcelas').value||1):1;
-    const base={
-        id: idEx?parseInt(idEx):Date.now(),
-        data: document.getElementById('f-data').value,
-        tipo: document.getElementById('f-tipo').value,
-        cat:  document.getElementById('f-cat').value,
+    const idEx     = document.getElementById('f-id').value;
+    const parcelado = document.getElementById('f-parcelado').checked;
+    const nParcelas = parcelado ? parseInt(document.getElementById('f-parcelas').value || 1) : 1;
+    const base = {
+        id:    idEx ? parseInt(idEx) : Date.now(),
+        data:  document.getElementById('f-data').value,
+        tipo:  document.getElementById('f-tipo').value,
+        cat:   document.getElementById('f-cat').value,
         valor: parseMoeda(document.getElementById('f-valor').value),
-        desc: document.getElementById('f-desc').value||document.getElementById('f-cat').value,
+        desc:  document.getElementById('f-desc').value || document.getElementById('f-cat').value,
         conta: document.getElementById('f-conta').value
     };
-    if(!base.data||base.valor<=0) return;
-    if(nParcelas>1){
-        const parcelas=gerarParcelas(base,nParcelas);
+    if(!base.data || base.valor <= 0) return;
+
+    const recriarFuturos = window._recriarParcelasFuturas;
+
+    if(recriarFuturos){
+        // Edição "este e todos os futuros": regera parcelas a partir da data de referência
+        const grupoId  = window._parcelaGrupoAtual || base.id;
+        const dataRef  = window._parcelaDataRef || base.data;
+        // Calcula quantas parcelas restam (a partir da data de referência) usando a contagem original
+        const totalDoGrupo = bd.filter(x => x.parcelaGrupo === grupoId).length;
+        const jaPassaram   = bd.filter(x => x.parcelaGrupo === grupoId && x.data < dataRef).length;
+        const restantes    = Math.max(1, totalDoGrupo - jaPassaram + 1); // +1 = inclui o atual
+
+        // Usa a data de referência como ponto de partida
+        base.data = dataRef;
+        base.id   = grupoId; // mantém o mesmo grupo
+        const novasParcelas = gerarParcelas(base, restantes);
+        // Substitui o grupo mantendo as parcelas já passadas
+        bd = bd.filter(x => !(x.parcelaGrupo === grupoId && x.data >= dataRef));
+        bd.push(...novasParcelas);
+
+        // Limpa flags
+        window._recriarParcelasFuturas = false;
+        window._parcelaGrupoAtual      = null;
+        window._parcelaDataRef         = null;
+        window._dadosParcelaEdicao     = null;
+        _parcelaFuturaGrupo = null;
+        _parcelaFuturaData  = null;
+
+        saveAll(); fecharModal('modalRegistro'); initFiltro(); render();
+        mostrarToast('✅ Parcelas futuras atualizadas.', 'success', 4000);
+        return;
+    }
+
+    if(nParcelas > 1){
+        const parcelas = gerarParcelas(base, nParcelas);
         bd.push(...parcelas);
     } else {
-        if(idEx){ const idx=bd.findIndex(x=>x.id===base.id); bd[idx]=base; }
+        if(idEx){ const idx = bd.findIndex(x => x.id === base.id); bd[idx] = base; }
         else bd.push(base);
     }
+
+    // Limpa flags de estado
+    window._recriarParcelasFuturas = false;
     saveAll(); fecharModal('modalRegistro'); initFiltro(); render();
 }
-function editarLancamento(id){
-    const i=bd.find(x=>x.id===id); if(!i) return;
-    document.getElementById('modal-titulo').innerText="Editar Transação";
-    document.getElementById('f-id').value=i.id;
-    document.getElementById('f-tipo').value=i.tipo; loadCats();
-    loadContasSelect('f-conta', i.conta);
-    document.getElementById('f-cat').value=i.cat;
-    document.getElementById('f-data').value=i.data;
-    document.getElementById('f-desc').value=i.desc;
-    document.getElementById('f-valor').value=fmt(i.valor).replace('R$','').trim();
-    document.getElementById('f-parcelado').checked=false; toggleParcelado();
-    document.getElementById('modalRegistro').style.display='flex';
+// =====================================================
+//  AÇÃO EM PARCELAMENTO — estado temporário
+// =====================================================
+let _parcelaAcaoTipo  = null;   // 'editar' | 'excluir'
+let _parcelaAcaoId    = null;   // id do lançamento alvo
+
+function _abrirEscolhaParcelaAcao(tipo, id){
+    _parcelaAcaoTipo = tipo;
+    _parcelaAcaoId   = id;
+    const isEdit = tipo === 'editar';
+    document.getElementById('parcela-acao-titulo').innerText    = isEdit ? '✏️ Editar Parcela' : '🗑️ Excluir Parcela';
+    document.getElementById('parcela-acao-subtitulo').innerText = isEdit
+        ? 'Este lançamento faz parte de um parcelamento. Como deseja aplicar a alteração?'
+        : 'Este lançamento faz parte de um parcelamento. O que deseja excluir?';
+    document.getElementById('btn-parcela-apenas-este').innerText    = isEdit ? '📌 Apenas este mês' : '🗑️ Apenas este mês';
+    document.getElementById('btn-parcela-todos-futuros').innerText  = isEdit ? '🔄 Este e todos os futuros' : '🗑️ Este e todos os futuros';
+    document.getElementById('modalParcelaAcao').style.display = 'flex';
 }
-function excluirLanc(id){ if(confirm("Excluir?")){ bd=bd.filter(i=>i.id!==id); saveAll(); render(); } }
+
+function executarAcaoParcela(escopo){
+    fecharModal('modalParcelaAcao');
+    const id   = _parcelaAcaoId;
+    const tipo = _parcelaAcaoTipo;
+    const item = bd.find(x => x.id === id);
+    if(!item) return;
+
+    if(tipo === 'editar'){
+        if(escopo === 'futuros'){
+            // Remove este e todos os futuros do mesmo grupo, reabre modal marcando o grupo
+            const grupo = item.parcelaGrupo;
+            const dataRef = item.data;
+            // Salva os futuros que serão removidos para recriar após edição
+            _parcelaFuturaGrupo = grupo;
+            _parcelaFuturaData  = dataRef;
+            bd = bd.filter(x => !(x.parcelaGrupo === grupo && x.data >= dataRef));
+            saveAll();
+        }
+        // Abre modal de edição normalmente (sem checkbox de parcelado, pois já existe)
+        _abrirModalEdicaoSimples(id, escopo === 'futuros');
+    } else {
+        // Excluir
+        const grupo = item.parcelaGrupo;
+        if(escopo === 'este'){
+            bd = bd.filter(x => x.id !== id);
+        } else {
+            const dataRef = item.data;
+            bd = bd.filter(x => !(x.parcelaGrupo === grupo && x.data >= dataRef));
+        }
+        saveAll(); render();
+        mostrarToast(escopo === 'este' ? '🗑️ Parcela excluída.' : '🗑️ Esta e futuras parcelas excluídas.', 'info', 4000);
+    }
+}
+
+// Auxiliares de estado para recriar parcelas futuras após edição
+let _parcelaFuturaGrupo = null;
+let _parcelaFuturaData  = null;
+
+function _abrirModalEdicaoSimples(id, recriarFuturos){
+    const i = bd.find(x => x.id === id);
+    // Se recriarFuturos, o item foi removido — usa dados do estado guardado antes
+    const dados = i || window._dadosParcelaEdicao;
+    if(!dados) return;
+
+    document.getElementById('modal-titulo').innerText = 'Editar Transação';
+    document.getElementById('f-id').value   = recriarFuturos ? '' : dados.id; // sem id = novo registro
+    document.getElementById('f-tipo').value = dados.tipo; loadCats();
+    loadContasSelect('f-conta', dados.conta);
+    document.getElementById('f-cat').value  = dados.cat;
+    document.getElementById('f-data').value = dados.data;
+    document.getElementById('f-desc').value = dados.desc.replace(/ \(\d+\/\d+\)/, '');
+    document.getElementById('f-valor').value = fmt(dados.valor).replace('R$','').trim();
+    document.getElementById('f-parcelado').checked = false; toggleParcelado();
+
+    // Guarda flag para salvarLancamento saber se precisa recriar futuras
+    window._recriarParcelasFuturas  = recriarFuturos;
+    window._parcelaGrupoAtual       = dados.parcelaGrupo || _parcelaFuturaGrupo;
+    window._parcelaDataRef          = _parcelaFuturaData;
+    window._dadosParcelaEdicao      = dados;
+
+    document.getElementById('modalRegistro').style.display = 'flex';
+}
+
+function editarLancamento(id){
+    const i = bd.find(x => x.id === id); if(!i) return;
+    window._dadosParcelaEdicao = i;   // guarda sempre para uso posterior
+
+    if(i.parcelaGrupo){
+        _abrirEscolhaParcelaAcao('editar', id);
+        return;
+    }
+    // Lançamento simples — edição direta
+    window._recriarParcelasFuturas = false;
+    document.getElementById('modal-titulo').innerText = 'Editar Transação';
+    document.getElementById('f-id').value   = i.id;
+    document.getElementById('f-tipo').value = i.tipo; loadCats();
+    loadContasSelect('f-conta', i.conta);
+    document.getElementById('f-cat').value  = i.cat;
+    document.getElementById('f-data').value = i.data;
+    document.getElementById('f-desc').value = i.desc;
+    document.getElementById('f-valor').value = fmt(i.valor).replace('R$','').trim();
+    document.getElementById('f-parcelado').checked = false; toggleParcelado();
+    document.getElementById('modalRegistro').style.display = 'flex';
+}
+
+function excluirLanc(id){
+    const item = bd.find(x => x.id === id); if(!item) return;
+    if(item.parcelaGrupo){
+        _abrirEscolhaParcelaAcao('excluir', id);
+        return;
+    }
+    if(confirm('Excluir este lançamento?')){ bd = bd.filter(i => i.id !== id); saveAll(); render(); }
+}
 
 // =====================================================
 //  METAS DE DESPESA (original)
@@ -1655,6 +1819,11 @@ function abrirModalRegistro(){
     document.getElementById('f-valor').value='';
     document.getElementById('f-parcelado').checked=false; toggleParcelado();
     loadCats(); loadContasSelect('f-conta');
+    // Limpa flags de edição de parcela
+    window._recriarParcelasFuturas = false;
+    window._parcelaGrupoAtual = null;
+    window._parcelaDataRef    = null;
+    window._dadosParcelaEdicao = null;
     document.getElementById('modalRegistro').style.display='flex';
 }
 function abrirModalMeta(){
