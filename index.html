@@ -1315,13 +1315,111 @@ function abrirDrillDash(tipo){
     document.getElementById('modalDrill').style.display='flex';
 }
 function abrirDrill(cat,tipo,periodo){
-    document.getElementById('drill-titulo').innerText=`${cat} (${tipo==='mensal'?'Mês':'Ano'})`;
-    let filtrados=bd.filter(i=>i.cat===cat&&i.tipo==='Despesa');
-    if(tipo==='mensal') filtrados=filtrados.filter(i=>i.data.startsWith(periodo));
-    else filtrados=filtrados.filter(i=>i.data.startsWith(periodo.split('-')[0]));
-    document.getElementById('drill-lista').innerHTML=filtrados.sort((a,b)=>new Date(b.data)-new Date(a.data)).map(i=>`<div class="item-lista"><div class="item-info"><b>${i.desc}</b><small>${i.data.split('-').reverse().join('/')}</small></div><b style="color:var(--danger)">${fmt(i.valor)}</b></div>`).join('')
-        ||'<p style="text-align:center;color:var(--muted);padding:20px;">Nenhum gasto.</p>';
-    document.getElementById('modalDrill').style.display='flex';
+    const MESES_PT = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+    if(tipo === 'mensal'){
+        document.getElementById('drill-titulo').innerText = cat + ' — ' + periodo.split('-').reverse().join('/');
+        const filtrados = bd.filter(i => i.cat === cat && i.tipo === 'Despesa' && i.data.startsWith(periodo));
+        document.getElementById('drill-lista').innerHTML = filtrados
+            .sort((a,b) => new Date(b.data) - new Date(a.data))
+            .map(i => `<div class="item-lista">
+                <div class="item-info"><b>${i.desc}</b><small>${i.data.split('-').reverse().join('/')}</small></div>
+                <b style="color:var(--danger)">${fmt(i.valor)}</b>
+            </div>`).join('')
+            || '<p style="text-align:center;color:var(--muted);padding:20px;">Nenhum gasto.</p>';
+        document.getElementById('modalDrill').style.display = 'flex';
+        return;
+    }
+
+    // ── MODO ANUAL ──
+    const ano = periodo;
+    document.getElementById('drill-titulo').innerText = cat + ' — Ano ' + ano;
+
+    const filtrados = bd
+        .filter(i => i.cat === cat && i.tipo === 'Despesa' && i.data.startsWith(ano))
+        .sort((a,b) => new Date(a.data) - new Date(b.data));
+
+    if(!filtrados.length){
+        document.getElementById('drill-lista').innerHTML =
+            '<p style="text-align:center;color:var(--muted);padding:20px;">Nenhum gasto no ano.</p>';
+        document.getElementById('modalDrill').style.display = 'flex';
+        return;
+    }
+
+    // ── Agrupamento por mês ──
+    const porMes = {};
+    filtrados.forEach(i => {
+        const mes = i.data.substring(0,7); // "2026-05"
+        if(!porMes[mes]) porMes[mes] = [];
+        porMes[mes].push(i);
+    });
+
+    // ── Totais por descrição base (sem " (X/Y)") ──
+    const porDesc = {};
+    filtrados.forEach(i => {
+        const descBase = i.desc.replace(/ \(\d+\/\d+\)/, '').trim();
+        if(!porDesc[descBase]) porDesc[descBase] = { total: 0, count: 0, valor: i.valor };
+        porDesc[descBase].total += i.valor;
+        porDesc[descBase].count++;
+    });
+
+    // ── Total geral da categoria no ano ──
+    const totalAno = filtrados.reduce((s,i) => s + i.valor, 0);
+
+    let html = '';
+
+    // Seção de totais por despesa
+    html += `<div style="background:var(--surface);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid var(--border);">
+        <div style="font-size:0.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">📊 Total por Despesa</div>`;
+    Object.entries(porDesc)
+        .sort((a,b) => b[1].total - a[1].total)
+        .forEach(([desc, info]) => {
+            const parcInfo = info.count > 1
+                ? `<span style="color:var(--muted);font-size:0.72rem;">${info.count}× ${fmt(info.valor)}</span>`
+                : '';
+            html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);">
+                <div style="flex:1;min-width:0">
+                    <span style="font-size:0.82rem;font-weight:600;">${desc}</span><br>
+                    ${parcInfo}
+                </div>
+                <b style="color:var(--danger);white-space:nowrap;margin-left:8px;">${fmt(info.total)}</b>
+            </div>`;
+        });
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;margin-top:2px;">
+        <b style="font-size:0.85rem;">Total ${ano}</b>
+        <b style="color:var(--danger);font-size:1rem;">${fmt(totalAno)}</b>
+    </div></div>`;
+
+    // Seção mês a mês
+    html += `<div style="font-size:0.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin:4px 0 10px 2px;">📅 Detalhamento Mensal</div>`;
+
+    Object.keys(porMes).sort().forEach(mesKey => {
+        const itens = porMes[mesKey];
+        const totalMes = itens.reduce((s,i) => s + i.valor, 0);
+        const [anoM, mesNum] = mesKey.split('-');
+        const labelMes = MESES_PT[parseInt(mesNum)] + '/' + anoM;
+
+        html += `<div style="margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;
+                background:var(--primary);color:white;border-radius:8px 8px 0 0;padding:7px 12px;">
+                <span style="font-weight:700;font-size:0.82rem;">📅 ${labelMes}</span>
+                <b style="font-size:0.88rem;">${fmt(totalMes)}</b>
+            </div>`;
+        itens.sort((a,b) => new Date(b.data)-new Date(a.data)).forEach(i => {
+            html += `<div style="display:flex;justify-content:space-between;align-items:center;
+                padding:8px 12px;border-bottom:1px solid var(--border);background:var(--surface);">
+                <div style="flex:1;min-width:0">
+                    <div style="font-size:0.82rem;font-weight:600;">${i.desc}</div>
+                    <div style="font-size:0.7rem;color:var(--muted);">${i.data.split('-').reverse().join('/')}</div>
+                </div>
+                <b style="color:var(--danger);white-space:nowrap;margin-left:8px;">${fmt(i.valor)}</b>
+            </div>`;
+        });
+        html += `</div>`;
+    });
+
+    document.getElementById('drill-lista').innerHTML = html;
+    document.getElementById('modalDrill').style.display = 'flex';
 }
 
 // =====================================================
