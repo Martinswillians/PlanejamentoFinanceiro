@@ -806,11 +806,45 @@ function renderContas(){
                 <span onclick="excluirConta(${c.id})" style="cursor:pointer;color:var(--danger);font-size:1.1rem;" title="Excluir conta">❌</span>
             </div>
         </div>`).join('');
-    // Atualiza filtro de extrato
+
+    _atualizarSelectContas();
+}
+
+function _atualizarSelectContas(){
+    const TIPOS_LABEL = {'Corrente':'C. Corrente','Poupança':'C. Poupança','Cartão':'Cartão Crédito','Carteira':'Carteira','Investimento':'Investimento'};
     const sel = document.getElementById('filtro-conta-ext');
+    if(!sel) return;
     const val = sel.value;
-    sel.innerHTML = '<option value="">Todas contas</option>' + contas.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
-    sel.value = val;
+
+    // Agrupa contas por tipo
+    const porTipo = {};
+    contas.forEach(c => {
+        const tLabel = TIPOS_LABEL[c.tipo] || c.tipo;
+        if(!porTipo[tLabel]) porTipo[tLabel] = [];
+        porTipo[tLabel].push(c);
+    });
+
+    let html = '<option value="">🏦 Todas as contas</option>';
+
+    // Grupo: filtrar por tipo
+    html += '<optgroup label="── Por tipo de conta ──">';
+    Object.keys(porTipo).forEach(tLabel => {
+        html += `<option value="tipo:${tLabel}">📂 ${tLabel}</option>`;
+    });
+    html += '</optgroup>';
+
+    // Grupo: contas individuais
+    html += '<optgroup label="── Conta específica ──">';
+    Object.keys(porTipo).forEach(tLabel => {
+        porTipo[tLabel].forEach(c => {
+            html += `<option value="${c.id}">${c.nome}</option>`;
+        });
+    });
+    html += '</optgroup>';
+
+    sel.innerHTML = html;
+    // Tenta restaurar seleção anterior
+    if(val) sel.value = val;
 }
 
 // =====================================================
@@ -1238,11 +1272,28 @@ function renderExtrato(ctx) {
     var contaEl  = document.getElementById('filtro-conta-ext');
     var filtConta = contaEl ? contaEl.value : '';
 
+    const TIPOS_LABEL = {'Corrente':'C. Corrente','Poupança':'C. Poupança','Cartão':'Cartão Crédito','Carteira':'Carteira','Investimento':'Investimento'};
+
+    // Resolve quais ids de conta correspondem ao filtro selecionado
+    var idsPermitidos = null; // null = sem filtro de conta
+    var filtroLabel = '';
+    if(filtConta.startsWith('tipo:')){
+        const tipoSel = filtConta.replace('tipo:','');
+        idsPermitidos = contas
+            .filter(c => (TIPOS_LABEL[c.tipo] || c.tipo) === tipoSel)
+            .map(c => String(c.id));
+        filtroLabel = tipoSel;
+    } else if(filtConta !== ''){
+        idsPermitidos = [filtConta];
+        filtroLabel = contaNome(parseInt(filtConta));
+    }
+
     var itensFiltrados = bd
         .filter(function(i){
-            return i.data.indexOf(pSel) === 0
-                && (i.desc.toLowerCase().indexOf(busca) !== -1 || i.cat.toLowerCase().indexOf(busca) !== -1)
-                && (!filtConta || String(i.conta || '') === filtConta);
+            var matchPeriod  = i.data.indexOf(pSel) === 0;
+            var matchBusca   = i.desc.toLowerCase().indexOf(busca) !== -1 || i.cat.toLowerCase().indexOf(busca) !== -1;
+            var matchConta   = idsPermitidos === null || idsPermitidos.includes(String(i.conta || ''));
+            return matchPeriod && matchBusca && matchConta;
         })
         .sort(function(a, b){ return new Date(b.data) - new Date(a.data); });
 
@@ -1280,10 +1331,9 @@ function renderExtrato(ctx) {
         document.getElementById('ext-total-saldo').style.color = saldo >= 0 ? 'var(--success)' : 'var(--danger)';
         document.getElementById('ext-saldo-wrap').style.background = saldo >= 0 ? '#e8f8f0' : '#fdf0f0';
         document.getElementById('ext-total-count').innerText  = itensFiltrados.length + ' lançamento' + (itensFiltrados.length !== 1 ? 's' : '');
-        // Label dos filtros ativos
         var labels = [];
         if(busca) labels.push('busca: "' + busca + '"');
-        if(filtConta) labels.push(contaNome(parseInt(filtConta)));
+        if(filtroLabel) labels.push(filtroLabel);
         document.getElementById('ext-total-label').innerText = labels.length ? 'Filtro: ' + labels.join(', ') : '';
     } else {
         totaisEl.style.display = 'none';
