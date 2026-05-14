@@ -306,12 +306,54 @@
     <div id="page-lancamentos" class="page">
         <div class="card">
             <h3>📜 Extrato Detalhado</h3>
-            <div style="display:flex;gap:8px;margin-bottom:12px;">
-                <input type="text" id="busca-lanc" placeholder="🔍 Buscar..." oninput="render()" style="margin-bottom:0; flex:1;">
-                <select id="filtro-conta-ext" onchange="render()" style="width:auto; margin-bottom:0; flex-shrink:0;">
-                    <option value="">Todas contas</option>
-                </select>
+
+            <!-- Barra de busca + botão filtros -->
+            <div style="display:flex;gap:8px;margin-bottom:8px;">
+                <input type="text" id="busca-lanc" placeholder="🔍 Buscar descrição ou categoria..." oninput="render()" style="margin-bottom:0;flex:1;font-size:0.82rem;">
+                <button id="btn-filtros-ext" onclick="togglePainelFiltrosExt()"
+                    style="background:var(--secondary);color:white;border:none;border-radius:8px;padding:0 14px;font-weight:bold;white-space:nowrap;font-size:0.82rem;position:relative;">
+                    🎛️ Filtros
+                    <span id="filtros-ext-badge" style="display:none;position:absolute;top:-5px;right:-5px;background:var(--danger);color:white;border-radius:50%;width:16px;height:16px;font-size:0.6rem;display:none;align-items:center;justify-content:center;font-weight:bold;"></span>
+                </button>
             </div>
+
+            <!-- Painel multi-filtro (oculto por padrão) -->
+            <div id="painel-filtros-ext" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;">
+                <!-- Filtro tipo -->
+                <div style="margin-bottom:10px;">
+                    <div style="font-size:0.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Tipo</div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.82rem;background:var(--card-bg);border:1px solid var(--border);border-radius:20px;padding:4px 10px;">
+                            <input type="checkbox" class="fext-tipo" value="Receita" onchange="render()" style="width:auto;margin:0;"> Receita
+                        </label>
+                        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.82rem;background:var(--card-bg);border:1px solid var(--border);border-radius:20px;padding:4px 10px;">
+                            <input type="checkbox" class="fext-tipo" value="Despesa" onchange="render()" style="width:auto;margin:0;"> Despesa
+                        </label>
+                    </div>
+                </div>
+                <!-- Filtro contas -->
+                <div style="margin-bottom:10px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                        <span style="font-size:0.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;">Contas</span>
+                        <span onclick="toggleTodosExt('fext-conta')" style="font-size:0.7rem;color:var(--secondary);cursor:pointer;font-weight:600;">Todos / Nenhum</span>
+                    </div>
+                    <div id="fext-contas-lista" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+                </div>
+                <!-- Filtro categorias -->
+                <div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                        <span style="font-size:0.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;">Categorias</span>
+                        <span onclick="toggleTodosExt('fext-cat')" style="font-size:0.7rem;color:var(--secondary);cursor:pointer;font-weight:600;">Todos / Nenhum</span>
+                    </div>
+                    <div id="fext-cats-lista" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+                </div>
+                <!-- Botão limpar -->
+                <button onclick="limparFiltrosExt()" style="width:100%;margin-top:12px;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:0.8rem;cursor:pointer;">🗑️ Limpar todos os filtros</button>
+            </div>
+
+            <!-- Chips dos filtros ativos -->
+            <div id="fext-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
+
             <!-- Totais do extrato filtrado -->
             <div id="extrato-totais" style="display:none;border-radius:10px;overflow:hidden;margin-bottom:12px;border:1px solid var(--border);">
                 <div style="display:flex;">
@@ -1324,51 +1366,113 @@ function renderDashboard(ctx) {
 }
 
 // ── 2. Extrato
-function renderExtrato(ctx) {
-    var pSel     = ctx.pSel;
-    var buscaEl  = document.getElementById('busca-lanc');
-    var busca    = buscaEl ? buscaEl.value.toLowerCase() : '';
-    var contaEl  = document.getElementById('filtro-conta-ext');
-    var filtConta = contaEl ? contaEl.value : '';
+// =====================================================
+//  FILTROS MULTI-SELEÇÃO DO EXTRATO
+// =====================================================
+function togglePainelFiltrosExt(){
+    const p = document.getElementById('painel-filtros-ext');
+    const aberto = p.style.display !== 'none';
+    p.style.display = aberto ? 'none' : 'block';
+    if(!aberto) _preencherPainelFiltrosExt();
+}
 
+function _preencherPainelFiltrosExt(){
     const TIPOS_LABEL = {'Corrente':'C. Corrente','Poupança':'C. Poupança','Cartão':'Cartão de Crédito','Débito':'Cartão de Débito','Carteira':'Carteira','Investimento':'Investimento','Crypto':'Crypto'};
 
-    // Resolve quais ids de conta correspondem ao filtro selecionado
-    var idsPermitidos = null; // null = sem filtro de conta
-    var filtroLabel = '';
-    if(filtConta.startsWith('tipo:')){
-        const tipoSel = filtConta.replace('tipo:','');
-        idsPermitidos = contas
-            .filter(c => c.tipo === tipoSel)
-            .map(c => String(c.id));
-        filtroLabel = TIPOS_LABEL[tipoSel] || tipoSel;
-    } else if(filtConta !== ''){
-        idsPermitidos = [filtConta];
-        filtroLabel = contaNome(parseInt(filtConta));
-    }
+    // Contas — desmarcadas por padrão (desmarcado = sem restrição)
+    const contasEl = document.getElementById('fext-contas-lista');
+    const selContas = _getFiltroExt('fext-conta');
+    contasEl.innerHTML = contas.map(c => {
+        const checked = selContas.includes(String(c.id)) ? 'checked' : '';
+        return `<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.78rem;background:var(--card-bg);border:1px solid var(--border);border-radius:20px;padding:4px 10px;">
+            <input type="checkbox" class="fext-conta" value="${c.id}" onchange="render()" ${checked} style="width:auto;margin:0;">
+            <span style="width:8px;height:8px;border-radius:50%;background:${c.cor};display:inline-block;"></span>
+            ${c.nome} <span style="color:var(--muted);font-size:0.68rem;">(${TIPOS_LABEL[c.tipo]||c.tipo})</span>
+        </label>`;
+    }).join('');
 
-    var itensFiltrados = bd
-        .filter(function(i){
-            var matchPeriod  = i.data.indexOf(pSel) === 0;
-            var matchBusca   = i.desc.toLowerCase().indexOf(busca) !== -1 || i.cat.toLowerCase().indexOf(busca) !== -1;
-            var matchConta   = idsPermitidos === null || idsPermitidos.includes(String(i.conta || ''));
-            return matchPeriod && matchBusca && matchConta;
-        })
-        .sort(function(a, b){ return new Date(b.data) - new Date(a.data); });
+    // Categorias — desmarcadas por padrão
+    const todasCats = [...new Set([...(cats.Receita||[]), ...(cats.Despesa||[])])].sort();
+    const catsEl = document.getElementById('fext-cats-lista');
+    const selCats = _getFiltroExt('fext-cat');
+    catsEl.innerHTML = todasCats.map(c => {
+        const checked = selCats.includes(c) ? 'checked' : '';
+        return `<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.78rem;background:var(--card-bg);border:1px solid var(--border);border-radius:20px;padding:4px 10px;">
+            <input type="checkbox" class="fext-cat" value="${c}" onchange="render()" ${checked} style="width:auto;margin:0;"> ${c}
+        </label>`;
+    }).join('');
+}
+
+function _getFiltroExt(cls){
+    return Array.from(document.querySelectorAll(`.${cls}:checked`)).map(el => el.value);
+}
+
+function toggleTodosExt(cls){
+    const todos = document.querySelectorAll(`.${cls}`);
+    // Se todos marcados → desmarca tudo (sem restrição); senão → marca todos
+    const todosMarcados = Array.from(todos).every(el => el.checked);
+    todos.forEach(el => el.checked = !todosMarcados);
+    render();
+}
+
+function limparFiltrosExt(){
+    document.getElementById('busca-lanc').value = '';
+    document.querySelectorAll('.fext-tipo,.fext-conta,.fext-cat').forEach(el => el.checked = false);
+    render();
+}
+
+function _atualizarChipsFiltros(busca, contas_sel, cats_sel, tipos_sel){
+    const el = document.getElementById('fext-chips');
+    if(!el) return;
+    const chips = [];
+    if(busca) chips.push(`<span style="background:var(--secondary);color:white;border-radius:20px;padding:3px 10px;font-size:0.72rem;cursor:pointer;" onclick="document.getElementById('busca-lanc').value='';render()">🔍 "${busca}" ✕</span>`);
+    tipos_sel.forEach(t => chips.push(`<span style="background:#9b59b6;color:white;border-radius:20px;padding:3px 10px;font-size:0.72rem;">${t}</span>`));
+    if(contas_sel.length > 0)
+        chips.push(`<span style="background:var(--primary);color:white;border-radius:20px;padding:3px 10px;font-size:0.72rem;">${contas_sel.length} conta${contas_sel.length!==1?'s':''}</span>`);
+    if(cats_sel.length > 0)
+        chips.push(`<span style="background:var(--success);color:white;border-radius:20px;padding:3px 10px;font-size:0.72rem;">${cats_sel.length} categoria${cats_sel.length!==1?'s':''}</span>`);
+    el.innerHTML = chips.join('');
+
+    const badge = document.getElementById('filtros-ext-badge');
+    const total = (busca?1:0) + tipos_sel.length + (contas_sel.length>0?1:0) + (cats_sel.length>0?1:0);
+    if(badge){ badge.style.display = total > 0 ? 'flex' : 'none'; badge.innerText = total; }
+}
+
+function renderExtrato(ctx) {
+    var pSel      = ctx.pSel;
+    var busca     = (document.getElementById('busca-lanc')||{value:''}).value.toLowerCase();
+    var tiposSel  = _getFiltroExt('fext-tipo');
+    var contasSel = _getFiltroExt('fext-conta');
+    var catsSel   = _getFiltroExt('fext-cat');
+    const todasCats = [...new Set([...(cats.Receita||[]), ...(cats.Despesa||[])])];
+
+    var itensFiltrados = bd.filter(function(i){
+        if(!i.data.startsWith(pSel)) return false;
+        if(busca && i.desc.toLowerCase().indexOf(busca) === -1 && i.cat.toLowerCase().indexOf(busca) === -1) return false;
+        // Tipo: se nenhum marcado → mostra todos; se marcado → filtra
+        if(tiposSel.length > 0 && !tiposSel.includes(i.tipo)) return false;
+        // Contas: se nenhuma marcada → mostra todas; se marcado → filtra
+        if(contasSel.length > 0 && !contasSel.includes(String(i.conta||''))) return false;
+        // Categorias: se nenhuma marcada → mostra todas; se marcado → filtra
+        if(catsSel.length > 0 && !catsSel.includes(i.cat)) return false;
+        return true;
+    }).sort(function(a,b){ return new Date(b.data)-new Date(a.data); });
+
+    _atualizarChipsFiltros(busca, contasSel, catsSel, tiposSel);
 
     var lista = itensFiltrados.map(function(i){
-            var cc = i.conta
-                ? '<span class="conta-chip" style="background:' + contaCor(i.conta) + '22;color:' + contaCor(i.conta) + ';">' + contaNome(i.conta) + '</span>'
-                : '';
-            return '<div class="item-lista">'
-                + '<div class="item-info"><b>' + i.desc + cc + '</b>'
-                + '<small>' + i.data.split('-').reverse().join('/') + ' • ' + i.cat + '</small></div>'
-                + '<div style="display:flex;align-items:center;gap:12px;">'
-                + '<b style="color:' + (i.tipo === 'Receita' ? 'var(--success)' : 'var(--danger)') + '">' + fmt(i.valor) + '</b>'
-                + '<span onclick="editarLancamento(' + i.id + ')" style="cursor:pointer;">✏️</span>'
-                + '<span onclick="excluirLanc(' + i.id + ')" style="cursor:pointer;">❌</span>'
-                + '</div></div>';
-        }).join('');
+        var cc = i.conta
+            ? '<span class="conta-chip" style="background:'+contaCor(i.conta)+'22;color:'+contaCor(i.conta)+';">'+contaNome(i.conta)+'</span>'
+            : '';
+        return '<div class="item-lista">'
+            +'<div class="item-info"><b>'+i.desc+cc+'</b>'
+            +'<small>'+i.data.split('-').reverse().join('/')+' • '+i.cat+'</small></div>'
+            +'<div style="display:flex;align-items:center;gap:12px;">'
+            +'<b style="color:'+(i.tipo==='Receita'?'var(--success)':'var(--danger)')+'">'+fmt(i.valor)+'</b>'
+            +'<span onclick="editarLancamento('+i.id+')" style="cursor:pointer;">✏️</span>'
+            +'<span onclick="excluirLanc('+i.id+')" style="cursor:pointer;">❌</span>'
+            +'</div></div>';
+    }).join('');
 
     document.getElementById('lista-lancamentos').innerHTML = lista
         || '<p style="text-align:center;color:var(--muted);padding:20px;">Nenhum lançamento encontrado.</p>';
@@ -1376,35 +1480,30 @@ function renderExtrato(ctx) {
     // ── Totais filtrados ──
     var totalRec = 0, totalDes = 0;
     itensFiltrados.forEach(function(i){
-        if(i.tipo === 'Receita') totalRec += i.valor;
-        else totalDes += i.valor;
+        if(i.tipo==='Receita') totalRec+=i.valor; else totalDes+=i.valor;
     });
     var saldo = totalRec - totalDes;
     var totaisEl = document.getElementById('extrato-totais');
 
     if(itensFiltrados.length > 0){
         totaisEl.style.display = 'block';
-        document.getElementById('ext-total-rec').innerText    = fmt(totalRec);
-        document.getElementById('ext-total-des').innerText    = fmt(totalDes);
-        document.getElementById('ext-total-saldo').innerText  = fmt(Math.abs(saldo));
-        document.getElementById('ext-total-saldo').style.color = saldo >= 0 ? 'var(--success)' : 'var(--danger)';
-        document.getElementById('ext-saldo-wrap').style.background = saldo >= 0 ? '#e8f8f0' : '#fdf0f0';
-        document.getElementById('ext-total-count').innerText  = itensFiltrados.length + ' lançamento' + (itensFiltrados.length !== 1 ? 's' : '');
-        var labels = [];
-        if(busca) labels.push('busca: "' + busca + '"');
-        if(filtroLabel) labels.push(filtroLabel);
-        document.getElementById('ext-total-label').innerText = labels.length ? 'Filtro: ' + labels.join(', ') : '';
+        document.getElementById('ext-total-rec').innerText   = fmt(totalRec);
+        document.getElementById('ext-total-des').innerText   = fmt(totalDes);
+        document.getElementById('ext-total-saldo').innerText = fmt(Math.abs(saldo));
+        document.getElementById('ext-total-saldo').style.color = saldo>=0?'var(--success)':'var(--danger)';
+        document.getElementById('ext-saldo-wrap').style.background = saldo>=0?'#e8f8f0':'#fdf0f0';
+        document.getElementById('ext-total-count').innerText = itensFiltrados.length+' lançamento'+(itensFiltrados.length!==1?'s':'');
+        document.getElementById('ext-total-label').innerText = '';
 
-        // Total geral (receitas + despesas) no rodapé da lista
         var totalGeral = totalRec + totalDes;
-        var totalGeralHtml = `<div style="margin-top:14px;padding:14px 16px;border-radius:12px;background:var(--surface);border:1.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-            <div>
-                <div style="font-size:0.88rem;font-weight:700;color:var(--text);">💰 Total dos lançamentos</div>
-                <div style="font-size:0.7rem;color:var(--muted);margin-top:3px;">ℹ️ Este total pode englobar receitas e despesas</div>
-            </div>
-            <b style="font-size:1.1rem;color:var(--secondary);white-space:nowrap;">${fmt(totalGeral)}</b>
-          </div>`;
-        document.getElementById('lista-lancamentos').innerHTML += totalGeralHtml;
+        document.getElementById('lista-lancamentos').innerHTML +=
+            `<div style="margin-top:14px;padding:14px 16px;border-radius:12px;background:var(--surface);border:1.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    <div style="font-size:0.88rem;font-weight:700;color:var(--text);">💰 Total dos lançamentos</div>
+                    <div style="font-size:0.7rem;color:var(--muted);margin-top:3px;">ℹ️ Este total pode englobar receitas e despesas</div>
+                </div>
+                <b style="font-size:1.1rem;color:var(--secondary);white-space:nowrap;">${fmt(totalGeral)}</b>
+            </div>`;
     } else {
         totaisEl.style.display = 'none';
     }
