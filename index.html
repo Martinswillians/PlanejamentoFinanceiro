@@ -1394,6 +1394,17 @@ function renderExtrato(ctx) {
         if(busca) labels.push('busca: "' + busca + '"');
         if(filtroLabel) labels.push(filtroLabel);
         document.getElementById('ext-total-label').innerText = labels.length ? 'Filtro: ' + labels.join(', ') : '';
+
+        // Total geral (receitas + despesas) no rodapé da lista
+        var totalGeral = totalRec + totalDes;
+        var totalGeralHtml = `<div style="margin-top:14px;padding:14px 16px;border-radius:12px;background:var(--surface);border:1.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+            <div>
+                <div style="font-size:0.88rem;font-weight:700;color:var(--text);">💰 Total dos lançamentos</div>
+                <div style="font-size:0.7rem;color:var(--muted);margin-top:3px;">ℹ️ Este total pode englobar receitas e despesas</div>
+            </div>
+            <b style="font-size:1.1rem;color:var(--secondary);white-space:nowrap;">${fmt(totalGeral)}</b>
+          </div>`;
+        document.getElementById('lista-lancamentos').innerHTML += totalGeralHtml;
     } else {
         totaisEl.style.display = 'none';
     }
