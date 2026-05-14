@@ -312,6 +312,27 @@
                     <option value="">Todas contas</option>
                 </select>
             </div>
+            <!-- Totais do extrato filtrado -->
+            <div id="extrato-totais" style="display:none;border-radius:10px;overflow:hidden;margin-bottom:12px;border:1px solid var(--border);">
+                <div style="display:flex;">
+                    <div style="flex:1;background:#e8f8f0;padding:9px 12px;text-align:center;border-right:1px solid var(--border);">
+                        <div style="font-size:0.62rem;font-weight:700;color:#27ae60;text-transform:uppercase;letter-spacing:0.3px;">Receitas</div>
+                        <div id="ext-total-rec" style="font-size:0.9rem;font-weight:800;color:#27ae60;">R$ 0,00</div>
+                    </div>
+                    <div style="flex:1;background:#fdf0f0;padding:9px 12px;text-align:center;border-right:1px solid var(--border);">
+                        <div style="font-size:0.62rem;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:0.3px;">Despesas</div>
+                        <div id="ext-total-des" style="font-size:0.9rem;font-weight:800;color:var(--danger);">R$ 0,00</div>
+                    </div>
+                    <div style="flex:1;padding:9px 12px;text-align:center;" id="ext-saldo-wrap">
+                        <div style="font-size:0.62rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;">Saldo</div>
+                        <div id="ext-total-saldo" style="font-size:0.9rem;font-weight:800;">R$ 0,00</div>
+                    </div>
+                </div>
+                <div style="background:var(--surface);padding:5px 12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+                    <span id="ext-total-count" style="font-size:0.72rem;color:var(--muted);"></span>
+                    <span id="ext-total-label" style="font-size:0.72rem;color:var(--muted);font-style:italic;"></span>
+                </div>
+            </div>
             <div id="lista-lancamentos"></div>
         </div>
     </div>
@@ -418,7 +439,7 @@
     <div id="page-config" class="page">
         <!-- Multi-contas -->
         <div class="card">
-            <h3>🏦 Multi-Contas</h3>
+            <h3>🏦 Gestão Multi-Contas</h3>
             <div style="display:flex;gap:8px;margin-bottom:12px;">
                 <input type="text" id="new-conta-nome" placeholder="Informe nome da conta" style="flex:1;margin-bottom:0;font-size:0.82rem;">
                 <select id="new-conta-tipo" style="width:auto;margin-bottom:0;font-size:0.82rem;">
@@ -428,17 +449,20 @@
                     <option value="Carteira">Carteira</option>
                     <option value="Investimento">Investimento</option>
                 </select>
-                <button onclick="adicionarConta()" style="background:var(--secondary);color:white;border:none;border-radius:8px;padding:0 14px;font-weight:bold;">+</button>
+                <button onclick="adicionarConta()" style="background:var(--secondary);color:white;border:none;border-radius:8px;padding:0 14px;font-weight:bold;font-size:1.1rem;">+</button>
             </div>
             <div id="lista-contas"></div>
         </div>
         <!-- Categorias -->
         <div class="card">
             <h3>🏷️ Gestão de Categorias</h3>
-            <div style="display:flex; gap:8px; margin-bottom:20px;">
-                <select id="new-cat-tipo" style="flex:1;"><option value="Despesa">Desp</option><option value="Receita">Rec</option></select>
-                <input type="text" id="new-cat-nome" placeholder="Nome..." style="flex:2; margin-bottom:0;">
-                <button onclick="adicionarCategoria()" style="background:var(--success); color:white; border:none; border-radius:8px; padding:0 18px; font-weight:bold;">Add</button>
+            <div style="display:flex;gap:8px;margin-bottom:20px;">
+                <input type="text" id="new-cat-nome" placeholder="Informe nome da categoria" style="flex:1;margin-bottom:0;font-size:0.82rem;">
+                <select id="new-cat-tipo" style="width:auto;margin-bottom:0;font-size:0.82rem;">
+                    <option value="Despesa">Despesa</option>
+                    <option value="Receita">Receita</option>
+                </select>
+                <button onclick="adicionarCategoria()" style="background:var(--secondary);color:white;border:none;border-radius:8px;padding:0 14px;font-weight:bold;font-size:1.1rem;">+</button>
             </div>
             <h4 style="margin-bottom:10px; color:var(--success)">Receitas</h4>
             <div id="list-cat-rec" class="cat-group"></div>
@@ -1214,14 +1238,15 @@ function renderExtrato(ctx) {
     var contaEl  = document.getElementById('filtro-conta-ext');
     var filtConta = contaEl ? contaEl.value : '';
 
-    var lista = bd
+    var itensFiltrados = bd
         .filter(function(i){
             return i.data.indexOf(pSel) === 0
                 && (i.desc.toLowerCase().indexOf(busca) !== -1 || i.cat.toLowerCase().indexOf(busca) !== -1)
                 && (!filtConta || String(i.conta || '') === filtConta);
         })
-        .sort(function(a, b){ return new Date(b.data) - new Date(a.data); })
-        .map(function(i){
+        .sort(function(a, b){ return new Date(b.data) - new Date(a.data); });
+
+    var lista = itensFiltrados.map(function(i){
             var cc = i.conta
                 ? '<span class="conta-chip" style="background:' + contaCor(i.conta) + '22;color:' + contaCor(i.conta) + ';">' + contaNome(i.conta) + '</span>'
                 : '';
@@ -1235,7 +1260,34 @@ function renderExtrato(ctx) {
                 + '</div></div>';
         }).join('');
 
-    document.getElementById('lista-lancamentos').innerHTML = lista;
+    document.getElementById('lista-lancamentos').innerHTML = lista
+        || '<p style="text-align:center;color:var(--muted);padding:20px;">Nenhum lançamento encontrado.</p>';
+
+    // ── Totais filtrados ──
+    var totalRec = 0, totalDes = 0;
+    itensFiltrados.forEach(function(i){
+        if(i.tipo === 'Receita') totalRec += i.valor;
+        else totalDes += i.valor;
+    });
+    var saldo = totalRec - totalDes;
+    var totaisEl = document.getElementById('extrato-totais');
+
+    if(itensFiltrados.length > 0){
+        totaisEl.style.display = 'block';
+        document.getElementById('ext-total-rec').innerText    = fmt(totalRec);
+        document.getElementById('ext-total-des').innerText    = fmt(totalDes);
+        document.getElementById('ext-total-saldo').innerText  = fmt(Math.abs(saldo));
+        document.getElementById('ext-total-saldo').style.color = saldo >= 0 ? 'var(--success)' : 'var(--danger)';
+        document.getElementById('ext-saldo-wrap').style.background = saldo >= 0 ? '#e8f8f0' : '#fdf0f0';
+        document.getElementById('ext-total-count').innerText  = itensFiltrados.length + ' lançamento' + (itensFiltrados.length !== 1 ? 's' : '');
+        // Label dos filtros ativos
+        var labels = [];
+        if(busca) labels.push('busca: "' + busca + '"');
+        if(filtConta) labels.push(contaNome(parseInt(filtConta)));
+        document.getElementById('ext-total-label').innerText = labels.length ? 'Filtro: ' + labels.join(', ') : '';
+    } else {
+        totaisEl.style.display = 'none';
+    }
 }
 
 // ── 3. Metas
