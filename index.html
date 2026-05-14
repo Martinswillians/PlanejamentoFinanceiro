@@ -448,6 +448,7 @@
                     <option value="Cartão">Cartão Crédito</option>
                     <option value="Carteira">Carteira</option>
                     <option value="Investimento">Investimento</option>
+                    <option value="Crypto">Crypto</option>
                 </select>
                 <button onclick="adicionarConta()" style="background:var(--secondary);color:white;border:none;border-radius:8px;padding:0 14px;font-weight:bold;font-size:1.1rem;">+</button>
             </div>
@@ -685,6 +686,37 @@
     </div>
 </div>
 
+<!-- Modal editar conta -->
+<div class="modal" id="modalEditarConta">
+    <div class="modal-content" style="border-radius:20px 20px 0 0;">
+        <h3 style="margin-bottom:14px;">✏️ Editar Conta</h3>
+        <input type="hidden" id="ec-id">
+        <label style="font-size:0.78rem;color:var(--muted);display:block;margin-bottom:4px;">Nome da conta</label>
+        <input type="text" id="ec-nome" placeholder="Nome da conta" maxlength="40" style="margin-bottom:12px;">
+        <label style="font-size:0.78rem;color:var(--muted);display:block;margin-bottom:4px;">Tipo</label>
+        <select id="ec-tipo" style="margin-bottom:18px;">
+            <option value="Corrente">C. Corrente</option>
+            <option value="Poupança">C. Poupança</option>
+            <option value="Cartão">Cartão Crédito</option>
+            <option value="Carteira">Carteira</option>
+            <option value="Investimento">Investimento</option>
+            <option value="Crypto">Crypto</option>
+        </select>
+        <button onclick="salvarEdicaoConta()" style="width:100%;background:var(--secondary);color:white;padding:14px;border:none;border-radius:10px;font-weight:bold;margin-bottom:10px;">💾 Salvar alterações</button>
+        <button onclick="fecharModal('modalEditarConta')" style="width:100%;border:none;background:none;color:var(--muted);padding:10px;">Cancelar</button>
+    </div>
+</div>
+
+<!-- Modal confirmar exclusão conta -->
+<div class="modal" id="modalExcluirConta">
+    <div class="modal-content" style="border-radius:20px 20px 0 0;">
+        <h3 style="margin-bottom:8px;color:var(--danger);">🗑️ Excluir Conta</h3>
+        <p id="excluir-conta-aviso" style="font-size:0.85rem;color:var(--muted);margin-bottom:18px;line-height:1.5;"></p>
+        <button onclick="confirmarExcluirConta()" style="width:100%;background:var(--danger);color:white;padding:14px;border:none;border-radius:10px;font-weight:bold;margin-bottom:10px;">🗑️ Confirmar Exclusão</button>
+        <button onclick="fecharModal('modalExcluirConta')" style="width:100%;border:none;background:none;color:var(--muted);padding:10px;">Cancelar</button>
+    </div>
+</div>
+
 <!-- ===== SCRIPT ===== -->
 <script>
 // =====================================================
@@ -767,31 +799,56 @@ function adicionarConta(){
     document.getElementById('new-conta-nome').value='';
     saveAll(); renderContas();
 }
+let _contaParaExcluir = null;
+
 function excluirConta(id){
-    if(contas.length<=1){alert('Mantenha ao menos uma conta.');return;}
-    if(confirm('Excluir conta?')){ contas=contas.filter(c=>c.id!==id); saveAll(); renderContas(); }
+    if(contas.length<=1){ mostrarToast('⚠️ Mantenha ao menos uma conta.','warning',4000); return; }
+    const c = contas.find(x => x.id === id); if(!c) return;
+    const nLanc = bd.filter(i => String(i.conta) === String(id)).length;
+    _contaParaExcluir = id;
+    let aviso = `Deseja excluir a conta <b>${c.nome}</b>?`;
+    if(nLanc > 0){
+        aviso += `<br><br>⚠️ <b>Atenção:</b> existem <b>${nLanc} lançamento${nLanc!==1?'s':''}</b> vinculados a essa conta. Após a exclusão, eles ficarão <b>sem conta vinculada</b> e continuarão visíveis no extrato.`;
+    }
+    document.getElementById('excluir-conta-aviso').innerHTML = aviso;
+    document.getElementById('modalExcluirConta').style.display = 'flex';
 }
+
+function confirmarExcluirConta(){
+    if(!_contaParaExcluir) return;
+    const c = contas.find(x => x.id === _contaParaExcluir);
+    contas = contas.filter(x => x.id !== _contaParaExcluir);
+    _contaParaExcluir = null;
+    saveAll(); renderContas(); fecharModal('modalExcluirConta');
+    mostrarToast(`🗑️ Conta "${c?.nome||''}" excluída.`, 'info', 4000);
+}
+
 function editarConta(id){
     const c = contas.find(x => x.id === id); if(!c) return;
-    const novoNome = prompt('Nome da conta:', c.nome);
-    if(novoNome === null) return;
-    if(!novoNome.trim()){ alert('Nome não pode ser vazio.'); return; }
-    // Escolha de tipo via select inline substituída por lista de opções no prompt
-    const tipos = ['Corrente','Poupança','Cartão','Carteira','Investimento'];
-    const labels = ['C. Corrente','C. Poupança','Cartão Crédito','Carteira','Investimento'];
-    const idxAtual = tipos.indexOf(c.tipo);
-    const opcoes = labels.map((l,i) => `${i+1}. ${l}`).join('\n');
-    const escolha = prompt(`Tipo atual: ${labels[idxAtual] || c.tipo}\n\nEscolha o novo tipo:\n${opcoes}\n\n(Digite o número ou deixe em branco para manter)`);
-    if(escolha !== null && escolha.trim() !== ''){
-        const idx = parseInt(escolha.trim()) - 1;
-        if(idx >= 0 && idx < tipos.length) c.tipo = tipos[idx];
-    }
-    c.nome = novoNome.trim();
-    saveAll(); renderContas();
+    document.getElementById('ec-id').value   = id;
+    document.getElementById('ec-nome').value = c.nome;
+    document.getElementById('ec-tipo').value = c.tipo;
+    document.getElementById('modalEditarConta').style.display = 'flex';
+    setTimeout(() => document.getElementById('ec-nome').focus(), 80);
+}
+
+function salvarEdicaoConta(){
+    const id   = parseInt(document.getElementById('ec-id').value);
+    const nome = document.getElementById('ec-nome').value.trim();
+    const tipo = document.getElementById('ec-tipo').value;
+    if(!nome){ mostrarToast('⚠️ Informe um nome para a conta.','warning',3000); return; }
+    // Verifica duplicidade de nome (ignorando a própria conta)
+    const duplicado = contas.some(c => c.id !== id && c.nome.toLowerCase() === nome.toLowerCase());
+    if(duplicado){ mostrarToast(`⚠️ Já existe uma conta com o nome "${nome}".`,'warning',4000); return; }
+    const c = contas.find(x => x.id === id); if(!c) return;
+    c.nome = nome;
+    c.tipo = tipo;
+    saveAll(); renderContas(); fecharModal('modalEditarConta');
+    mostrarToast(`✅ Conta "${nome}" atualizada.`, 'success', 3000);
 }
 function renderContas(){
     const el = document.getElementById('lista-contas');
-    const TIPOS_LABEL = {'Corrente':'C. Corrente','Poupança':'C. Poupança','Cartão':'Cartão Crédito','Carteira':'Carteira','Investimento':'Investimento'};
+    const TIPOS_LABEL = {'Corrente':'C. Corrente','Poupança':'C. Poupança','Cartão':'Cartão Crédito','Carteira':'Carteira','Investimento':'Investimento','Crypto':'Crypto'};
     el.innerHTML = contas.map(c=>`
         <div class="item-lista">
             <div class="item-info">
@@ -811,7 +868,7 @@ function renderContas(){
 }
 
 function _atualizarSelectContas(){
-    const TIPOS_LABEL = {'Corrente':'C. Corrente','Poupança':'C. Poupança','Cartão':'Cartão Crédito','Carteira':'Carteira','Investimento':'Investimento'};
+    const TIPOS_LABEL = {'Corrente':'C. Corrente','Poupança':'C. Poupança','Cartão':'Cartão Crédito','Carteira':'Carteira','Investimento':'Investimento','Crypto':'Crypto'};
     const sel = document.getElementById('filtro-conta-ext');
     if(!sel) return;
     const val = sel.value;
@@ -820,23 +877,23 @@ function _atualizarSelectContas(){
     const porTipo = {};
     contas.forEach(c => {
         const tLabel = TIPOS_LABEL[c.tipo] || c.tipo;
-        if(!porTipo[tLabel]) porTipo[tLabel] = [];
-        porTipo[tLabel].push(c);
+        if(!porTipo[tLabel]) porTipo[tLabel] = { tipo: c.tipo, contas: [] };
+        porTipo[tLabel].contas.push(c);
     });
 
     let html = '<option value="">🏦 Todas as contas</option>';
 
     // Grupo: filtrar por tipo
     html += '<optgroup label="── Por tipo de conta ──">';
-    Object.keys(porTipo).forEach(tLabel => {
-        html += `<option value="tipo:${tLabel}">📂 ${tLabel}</option>`;
+    Object.entries(porTipo).forEach(([tLabel, info]) => {
+        html += `<option value="tipo:${info.tipo}">📂 ${tLabel}</option>`;
     });
     html += '</optgroup>';
 
     // Grupo: contas individuais
     html += '<optgroup label="── Conta específica ──">';
-    Object.keys(porTipo).forEach(tLabel => {
-        porTipo[tLabel].forEach(c => {
+    Object.entries(porTipo).forEach(([tLabel, info]) => {
+        info.contas.forEach(c => {
             html += `<option value="${c.id}">${c.nome}</option>`;
         });
     });
@@ -1272,7 +1329,7 @@ function renderExtrato(ctx) {
     var contaEl  = document.getElementById('filtro-conta-ext');
     var filtConta = contaEl ? contaEl.value : '';
 
-    const TIPOS_LABEL = {'Corrente':'C. Corrente','Poupança':'C. Poupança','Cartão':'Cartão Crédito','Carteira':'Carteira','Investimento':'Investimento'};
+    const TIPOS_LABEL = {'Corrente':'C. Corrente','Poupança':'C. Poupança','Cartão':'Cartão Crédito','Carteira':'Carteira','Investimento':'Investimento','Crypto':'Crypto'};
 
     // Resolve quais ids de conta correspondem ao filtro selecionado
     var idsPermitidos = null; // null = sem filtro de conta
@@ -1280,9 +1337,9 @@ function renderExtrato(ctx) {
     if(filtConta.startsWith('tipo:')){
         const tipoSel = filtConta.replace('tipo:','');
         idsPermitidos = contas
-            .filter(c => (TIPOS_LABEL[c.tipo] || c.tipo) === tipoSel)
+            .filter(c => c.tipo === tipoSel)
             .map(c => String(c.id));
-        filtroLabel = tipoSel;
+        filtroLabel = TIPOS_LABEL[tipoSel] || tipoSel;
     } else if(filtConta !== ''){
         idsPermitidos = [filtConta];
         filtroLabel = contaNome(parseInt(filtConta));
