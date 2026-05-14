@@ -420,10 +420,10 @@
         <div class="card">
             <h3>🏦 Multi-Contas</h3>
             <div style="display:flex;gap:8px;margin-bottom:12px;">
-                <input type="text" id="new-conta-nome" placeholder="Nome da conta..." style="flex:1;margin-bottom:0;">
-                <select id="new-conta-tipo" style="width:auto;margin-bottom:0;">
-                    <option value="Corrente">Corrente</option>
-                    <option value="Poupança">Poupança</option>
+                <input type="text" id="new-conta-nome" placeholder="Informe nome da conta" style="flex:1;margin-bottom:0;font-size:0.82rem;">
+                <select id="new-conta-tipo" style="width:auto;margin-bottom:0;font-size:0.82rem;">
+                    <option value="Corrente">C. Corrente</option>
+                    <option value="Poupança">C. Poupança</option>
                     <option value="Cartão">Cartão Crédito</option>
                     <option value="Carteira">Carteira</option>
                     <option value="Investimento">Investimento</option>
@@ -733,18 +733,40 @@ function excluirConta(id){
     if(contas.length<=1){alert('Mantenha ao menos uma conta.');return;}
     if(confirm('Excluir conta?')){ contas=contas.filter(c=>c.id!==id); saveAll(); renderContas(); }
 }
+function editarConta(id){
+    const c = contas.find(x => x.id === id); if(!c) return;
+    const novoNome = prompt('Nome da conta:', c.nome);
+    if(novoNome === null) return;
+    if(!novoNome.trim()){ alert('Nome não pode ser vazio.'); return; }
+    // Escolha de tipo via select inline substituída por lista de opções no prompt
+    const tipos = ['Corrente','Poupança','Cartão','Carteira','Investimento'];
+    const labels = ['C. Corrente','C. Poupança','Cartão Crédito','Carteira','Investimento'];
+    const idxAtual = tipos.indexOf(c.tipo);
+    const opcoes = labels.map((l,i) => `${i+1}. ${l}`).join('\n');
+    const escolha = prompt(`Tipo atual: ${labels[idxAtual] || c.tipo}\n\nEscolha o novo tipo:\n${opcoes}\n\n(Digite o número ou deixe em branco para manter)`);
+    if(escolha !== null && escolha.trim() !== ''){
+        const idx = parseInt(escolha.trim()) - 1;
+        if(idx >= 0 && idx < tipos.length) c.tipo = tipos[idx];
+    }
+    c.nome = novoNome.trim();
+    saveAll(); renderContas();
+}
 function renderContas(){
     const el = document.getElementById('lista-contas');
+    const TIPOS_LABEL = {'Corrente':'C. Corrente','Poupança':'C. Poupança','Cartão':'Cartão Crédito','Carteira':'Carteira','Investimento':'Investimento'};
     el.innerHTML = contas.map(c=>`
         <div class="item-lista">
             <div class="item-info">
                 <b style="display:flex;align-items:center;gap:8px;">
-                    <span style="width:12px;height:12px;border-radius:50%;background:${c.cor};display:inline-block;"></span>
+                    <span style="width:12px;height:12px;border-radius:50%;background:${c.cor};display:inline-block;flex-shrink:0;"></span>
                     ${c.nome}
                 </b>
-                <small>${c.tipo}</small>
+                <small>${TIPOS_LABEL[c.tipo] || c.tipo}</small>
             </div>
-            <span onclick="excluirConta(${c.id})" style="cursor:pointer;color:var(--danger);">❌</span>
+            <div style="display:flex;gap:10px;align-items:center;">
+                <span onclick="editarConta(${c.id})" style="cursor:pointer;font-size:1.1rem;" title="Editar conta">✏️</span>
+                <span onclick="excluirConta(${c.id})" style="cursor:pointer;color:var(--danger);font-size:1.1rem;" title="Excluir conta">❌</span>
+            </div>
         </div>`).join('');
     // Atualiza filtro de extrato
     const sel = document.getElementById('filtro-conta-ext');
@@ -1336,7 +1358,7 @@ function abrirDrill(cat,tipo,periodo){
     document.getElementById('drill-titulo').innerText = cat + ' — Ano ' + ano;
 
     const filtrados = bd
-        .filter(i => i.cat === cat && i.tipo === 'Despesa' && i.data.startsWith(ano))
+        .filter(i => i.cat === cat && i.tipo === 'Despesa' && i.data.startsWith(ano) && i.valor > 0)
         .sort((a,b) => new Date(a.data) - new Date(b.data));
 
     if(!filtrados.length){
