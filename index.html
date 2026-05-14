@@ -478,7 +478,21 @@
         <select id="f-tipo" onchange="loadCats()"><option value="Despesa">Despesa</option><option value="Receita">Receita</option></select>
         <select id="f-conta"></select>
         <input type="date" id="f-data">
-        <select id="f-cat"></select>
+        <select id="f-cat" onchange="onCatChange()"></select>
+        <!-- Painel inline: nova categoria -->
+        <div id="nova-cat-painel" style="display:none;background:#f0faf4;border:1.5px solid var(--success);border-radius:10px;padding:10px 12px;margin-top:-6px;margin-bottom:4px;">
+            <div style="font-size:0.75rem;font-weight:700;color:var(--success);margin-bottom:6px;">➕ Nova categoria de <span id="nova-cat-tipo-label">Despesa</span></div>
+            <div style="display:flex;gap:8px;align-items:center;">
+                <input type="text" id="nova-cat-input" placeholder="Nome da categoria..." maxlength="40"
+                    style="flex:1;margin-bottom:0;font-size:0.85rem;"
+                    onkeydown="if(event.key==='Enter'){event.preventDefault();salvarNovaCategoria();}">
+                <button onclick="salvarNovaCategoria()"
+                    style="background:var(--success);color:white;border:none;border-radius:8px;padding:8px 14px;font-weight:bold;white-space:nowrap;">Salvar</button>
+                <button onclick="cancelarNovaCategoria()"
+                    style="background:var(--danger);color:white;border:none;border-radius:8px;padding:8px 10px;font-weight:bold;">✕</button>
+            </div>
+            <div id="nova-cat-erro" style="display:none;font-size:0.73rem;color:var(--danger);margin-top:5px;"></div>
+        </div>
         <input type="text" id="f-desc" placeholder="Descrição">
         <input type="text" id="f-valor" oninput="maskMoeda(this)" placeholder="R$ 0,00">
         <!-- PARCELAMENTO -->
@@ -1451,6 +1465,16 @@ function salvarLancamento(){
     const idEx      = document.getElementById('f-id').value;
     const parcelado = document.getElementById('f-parcelado').checked;
     const nParcelas = parcelado ? parseInt(document.getElementById('f-parcelas').value || 1) : 1;
+
+    // Bloqueia se o usuário não finalizou a criação de nova categoria
+    const catVal = document.getElementById('f-cat').value;
+    if(catVal === '__nova__'){
+        document.getElementById('nova-cat-painel').style.display = 'block';
+        document.getElementById('nova-cat-erro').innerText = 'Salve a nova categoria antes de continuar.';
+        document.getElementById('nova-cat-erro').style.display = 'block';
+        document.getElementById('nova-cat-input').focus();
+        return;
+    }
     const base = {
         id:    idEx ? parseInt(idEx) : Date.now(),
         data:  document.getElementById('f-data').value,
@@ -2033,7 +2057,65 @@ function abrirModalMeta(){
     document.getElementById('modalMeta').style.display='flex';
 }
 function fecharModal(id){ document.getElementById(id).style.display='none'; }
-function loadCats(){ const t=document.getElementById('f-tipo').value; document.getElementById('f-cat').innerHTML=cats[t].map(c=>`<option value="${c}">${c}</option>`).join(''); }
+function loadCats(){
+    const t = document.getElementById('f-tipo').value;
+    const sel = document.getElementById('f-cat');
+    sel.innerHTML = cats[t].map(c => `<option value="${c}">${c}</option>`).join('')
+        + `<option value="__nova__" style="color:var(--success);font-weight:bold;">➕ Nova categoria...</option>`;
+    // Fecha painel se estava aberto
+    document.getElementById('nova-cat-painel').style.display = 'none';
+}
+
+function onCatChange(){
+    if(document.getElementById('f-cat').value === '__nova__'){
+        const tipo = document.getElementById('f-tipo').value;
+        document.getElementById('nova-cat-tipo-label').innerText = tipo;
+        document.getElementById('nova-cat-input').value = '';
+        document.getElementById('nova-cat-erro').style.display = 'none';
+        document.getElementById('nova-cat-painel').style.display = 'block';
+        setTimeout(() => document.getElementById('nova-cat-input').focus(), 80);
+    } else {
+        document.getElementById('nova-cat-painel').style.display = 'none';
+    }
+}
+
+function salvarNovaCategoria(){
+    const tipo  = document.getElementById('f-tipo').value;
+    const nome  = document.getElementById('nova-cat-input').value.trim();
+    const erroEl = document.getElementById('nova-cat-erro');
+
+    if(!nome){ erroEl.innerText = 'Digite um nome para a categoria.'; erroEl.style.display='block'; return; }
+
+    // Verificação case-insensitive
+    const jaExiste = cats[tipo].some(c => c.toLowerCase() === nome.toLowerCase());
+    if(jaExiste){
+        erroEl.innerText = `"${nome}" já existe na lista de ${tipo}.`;
+        erroEl.style.display = 'block';
+        return;
+    }
+
+    cats[tipo].push(nome);
+    saveAll();
+
+    // Atualiza o select e seleciona a nova categoria
+    loadCats();
+    document.getElementById('f-cat').value = nome;
+    document.getElementById('nova-cat-painel').style.display = 'none';
+
+    // Também atualiza a gestão de categorias se estiver visível
+    if(document.getElementById('page-config') && document.getElementById('page-config').style.display !== 'none'){
+        renderConfig();
+    }
+
+    mostrarToast(`✅ Categoria "${nome}" adicionada em ${tipo}.`, 'success', 3500);
+}
+
+function cancelarNovaCategoria(){
+    document.getElementById('nova-cat-painel').style.display = 'none';
+    // Volta para a primeira categoria da lista
+    const sel = document.getElementById('f-cat');
+    if(sel.options.length > 1) sel.selectedIndex = 0;
+}
 
 // =====================================================
 //  CHARTS
