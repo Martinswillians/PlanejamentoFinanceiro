@@ -445,7 +445,8 @@
                 <select id="new-conta-tipo" style="width:auto;margin-bottom:0;font-size:0.82rem;">
                     <option value="Corrente">C. Corrente</option>
                     <option value="Poupança">C. Poupança</option>
-                    <option value="Cartão">Cartão Crédito</option>
+                    <option value="Cartão">Cartão de Crédito</option>
+                    <option value="Débito">Cartão de Débito</option>
                     <option value="Carteira">Carteira</option>
                     <option value="Investimento">Investimento</option>
                     <option value="Crypto">Crypto</option>
@@ -697,7 +698,8 @@
         <select id="ec-tipo" style="margin-bottom:18px;">
             <option value="Corrente">C. Corrente</option>
             <option value="Poupança">C. Poupança</option>
-            <option value="Cartão">Cartão Crédito</option>
+            <option value="Cartão">Cartão de Crédito</option>
+                    <option value="Débito">Cartão de Débito</option>
             <option value="Carteira">Carteira</option>
             <option value="Investimento">Investimento</option>
             <option value="Crypto">Crypto</option>
@@ -848,7 +850,7 @@ function salvarEdicaoConta(){
 }
 function renderContas(){
     const el = document.getElementById('lista-contas');
-    const TIPOS_LABEL = {'Corrente':'C. Corrente','Poupança':'C. Poupança','Cartão':'Cartão Crédito','Carteira':'Carteira','Investimento':'Investimento','Crypto':'Crypto'};
+    const TIPOS_LABEL = {'Corrente':'C. Corrente','Poupança':'C. Poupança','Cartão':'Cartão de Crédito','Débito':'Cartão de Débito','Carteira':'Carteira','Investimento':'Investimento','Crypto':'Crypto'};
     el.innerHTML = contas.map(c=>`
         <div class="item-lista">
             <div class="item-info">
@@ -868,7 +870,7 @@ function renderContas(){
 }
 
 function _atualizarSelectContas(){
-    const TIPOS_LABEL = {'Corrente':'C. Corrente','Poupança':'C. Poupança','Cartão':'Cartão Crédito','Carteira':'Carteira','Investimento':'Investimento','Crypto':'Crypto'};
+    const TIPOS_LABEL = {'Corrente':'C. Corrente','Poupança':'C. Poupança','Cartão':'Cartão de Crédito','Débito':'Cartão de Débito','Carteira':'Carteira','Investimento':'Investimento','Crypto':'Crypto'};
     const sel = document.getElementById('filtro-conta-ext');
     if(!sel) return;
     const val = sel.value;
@@ -1329,7 +1331,7 @@ function renderExtrato(ctx) {
     var contaEl  = document.getElementById('filtro-conta-ext');
     var filtConta = contaEl ? contaEl.value : '';
 
-    const TIPOS_LABEL = {'Corrente':'C. Corrente','Poupança':'C. Poupança','Cartão':'Cartão Crédito','Carteira':'Carteira','Investimento':'Investimento','Crypto':'Crypto'};
+    const TIPOS_LABEL = {'Corrente':'C. Corrente','Poupança':'C. Poupança','Cartão':'Cartão de Crédito','Débito':'Cartão de Débito','Carteira':'Carteira','Investimento':'Investimento','Crypto':'Crypto'};
 
     // Resolve quais ids de conta correspondem ao filtro selecionado
     var idsPermitidos = null; // null = sem filtro de conta
