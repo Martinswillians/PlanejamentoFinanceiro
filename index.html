@@ -3,7 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Financeiro Pro Mobile v18 | by Will Martins</title>
+
+    <!-- ===== SEO & META ===== -->
+    <title>Financeiro Pro · Controle Financeiro Pessoal | by Will Martins</title>
+    <meta name="description" content="Gerencie suas finanças pessoais com o Financeiro Pro. Controle receitas, despesas, metas, investimentos e muito mais — tudo no seu celular.">
+    <meta name="keywords" content="financeiro pessoal, controle de gastos, orçamento, metas financeiras, investimentos, planejamento financeiro">
+    <meta name="author" content="Will Martins">
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#2c3e50">
+    <link rel="canonical" href="https://financeiropro.app">
+
+    <!-- ===== OPEN GRAPH ===== -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Financeiro Pro · Controle Financeiro Pessoal">
+    <meta property="og:description" content="Gerencie suas finanças pessoais com facilidade. Receitas, despesas, metas, investimentos e relatórios — tudo em um só lugar.">
+    <meta property="og:url" content="https://financeiropro.app">
+    <meta property="og:locale" content="pt_BR">
+    <meta property="og:image" content="https://financeiropro.app/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+
+    <!-- ===== TWITTER CARD ===== -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Financeiro Pro · Controle Financeiro Pessoal">
+    <meta name="twitter:description" content="Gerencie suas finanças pessoais com facilidade. Receitas, despesas, metas e investimentos.">
+    <meta name="twitter:image" content="https://financeiropro.app/og-image.png">
+
+    <!-- ===== FAVICON SVG INLINE ===== -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%232c3e50'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui,sans-serif' font-size='18' font-weight='bold' fill='white'>W</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%232c3e50'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui,sans-serif' font-size='110' font-weight='bold' fill='white'>W</text></svg>">
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* ===== CSS VARIABLES — LIGHT & DARK ===== */
@@ -28,7 +57,7 @@
             transition: background 0.3s, color 0.3s;
         }
 
-        .mobile-header { background: var(--header-bg); color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.15); gap:8px; }
+        .mobile-header { background: var(--header-bg); color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.15); gap:8px; position:relative; overflow:hidden; }
         .brand-mobile { display: flex; align-items: center; gap: 8px; flex-shrink:0; }
         .logo-container { width: 32px; height: 32px; background: var(--secondary); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem; }
         .header-controls { display:flex; align-items:center; gap:8px; }
@@ -200,7 +229,10 @@
 </div>
 
 <div class="mobile-header">
-    <div class="brand-mobile">
+    <!-- Partículas constelação no header -->
+<canvas id="particles-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;"></canvas>
+
+<div class="brand-mobile" style="position:relative;z-index:1;">
         <div class="logo-container">W</div>
         <div>
             <b style="font-size:0.9rem; display:block; line-height:1.1;">Financeiro Pro</b>
@@ -2763,6 +2795,128 @@ applyDark();
     }
     // Sem sessão — mostrar login
     document.getElementById('login-screen').classList.remove('hidden');
+})();
+</script>
+<!-- ===== BOTÃO VOLTAR AO TOPO ===== -->
+<button id="btn-top" onclick="document.querySelector('.content-area').scrollTo({top:0,behavior:'smooth'})"
+    title="Voltar ao topo"
+    style="position:fixed;bottom:80px;right:16px;width:44px;height:44px;border-radius:50%;
+           background:var(--secondary);color:white;border:none;font-size:1.2rem;cursor:pointer;
+           z-index:3000;display:flex;align-items:center;justify-content:center;
+           box-shadow:0 4px 14px rgba(52,152,219,0.4);
+           opacity:0;transform:translateY(12px);transition:opacity 0.3s,transform 0.3s,background 0.2s;
+           pointer-events:none;">▲</button>
+
+<script>
+// ===== VOLTAR AO TOPO =====
+(function(){
+    const btn = document.getElementById('btn-top');
+    const area = document.querySelector('.content-area');
+    if(!area||!btn) return;
+    area.addEventListener('scroll', function(){
+        const show = area.scrollTop > 500;
+        btn.style.opacity     = show ? '1'    : '0';
+        btn.style.transform   = show ? 'translateY(0)' : 'translateY(12px)';
+        btn.style.pointerEvents = show ? 'auto' : 'none';
+    }, {passive:true});
+    btn.addEventListener('mouseenter', () => btn.style.background = '#2980b9');
+    btn.addEventListener('mouseleave', () => btn.style.background = 'var(--secondary)');
+})();
+
+// ===== PARTÍCULAS FINANCEIRAS SUTIS =====
+(function(){
+    const canvas = document.getElementById('particles-canvas');
+    if(!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const N = 28, MAX_DIST = 90;
+    let W, H, particles = [], raf;
+
+    function isDark(){ return document.body.classList.contains('dark'); }
+
+    // Símbolos financeiros discretos
+    const SYMBOLS = ['$','%','↑','↗','R$'];
+
+    function resize(){
+        const rect = canvas.parentElement.getBoundingClientRect();
+        W = canvas.width  = rect.width;
+        H = canvas.height = rect.height;
+    }
+
+    function mkParticle(i){
+        return {
+            x: Math.random() * W,
+            y: Math.random() * H,
+            vx: (Math.random() - 0.5) * 0.3,
+            vy: (Math.random() - 0.5) * 0.3,
+            r: Math.random() * 1.2 + 0.8,
+            sym: i < 6 ? SYMBOLS[Math.floor(Math.random()*SYMBOLS.length)] : null,
+            fontSize: Math.random() * 6 + 7,
+            opacity: Math.random() * 0.18 + 0.08
+        };
+    }
+
+    function init(){
+        resize();
+        particles = Array.from({length: N}, (_, i) => mkParticle(i));
+    }
+
+    function draw(){
+        ctx.clearRect(0, 0, W, H);
+        const baseAlpha = isDark() ? 0.18 : 0.22;
+        const dotColor  = isDark() ? `rgba(255,255,255,${baseAlpha})` : `rgba(255,255,255,${baseAlpha})`;
+        const lineAlpha = isDark() ? 0.12 : 0.14;
+
+        // Linhas finas entre partículas próximas
+        for(let i = 0; i < N; i++){
+            for(let j = i+1; j < N; j++){
+                const dx = particles[i].x - particles[j].x;
+                const dy = particles[i].y - particles[j].y;
+                const d  = Math.sqrt(dx*dx + dy*dy);
+                if(d < MAX_DIST){
+                    const a = (1 - d/MAX_DIST) * lineAlpha;
+                    ctx.beginPath();
+                    ctx.strokeStyle = `rgba(255,255,255,${a})`;
+                    ctx.lineWidth = 0.5;
+                    ctx.moveTo(particles[i].x, particles[i].y);
+                    ctx.lineTo(particles[j].x, particles[j].y);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        // Pontos e símbolos
+        particles.forEach(p => {
+            if(p.sym){
+                ctx.font = `${p.fontSize}px system-ui,sans-serif`;
+                ctx.fillStyle = `rgba(255,255,255,${p.opacity})`;
+                ctx.fillText(p.sym, p.x, p.y);
+            } else {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+                ctx.fillStyle = dotColor;
+                ctx.fill();
+            }
+        });
+    }
+
+    function update(){
+        particles.forEach(p => {
+            p.x += p.vx; p.y += p.vy;
+            if(p.x < 0 || p.x > W) p.vx *= -1;
+            if(p.y < 0 || p.y > H) p.vy *= -1;
+            p.x = Math.max(0, Math.min(W, p.x));
+            p.y = Math.max(0, Math.min(H, p.y));
+        });
+    }
+
+    function loop(){ update(); draw(); raf = requestAnimationFrame(loop); }
+
+    window.addEventListener('resize', resize);
+    document.addEventListener('visibilitychange', () => {
+        if(document.hidden) cancelAnimationFrame(raf); else loop();
+    });
+
+    init(); loop();
 })();
 </script>
 </body>
