@@ -30,8 +30,8 @@
     <meta name="twitter:image" content="https://financeiropro.app/og-image.png">
 
     <!-- ===== FAVICON SVG INLINE ===== -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%232c3e50'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui,sans-serif' font-size='18' font-weight='bold' fill='white'>W</text></svg>">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%232c3e50'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui,sans-serif' font-size='110' font-weight='bold' fill='white'>W</text></svg>">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%232c3e50'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui,sans-serif' font-size='10' font-weight='bold' fill='white'>FIN</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%232c3e50'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui,sans-serif' font-size='58' font-weight='bold' fill='white'>FIN</text></svg>">
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -330,7 +330,23 @@
             </div>
         </div>
         <div id="previsao-dash"></div>
-        <div class="card"><h3>📊 Gastos por Categoria</h3><div style="height:220px;"><canvas id="chartCats"></canvas></div></div>
+        <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <h3 style="margin:0;">📊 Gastos por</h3>
+                <div style="display:flex;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:2px;gap:2px;">
+                    <button id="tab-cat-btn" onclick="switchChartTab('cat')"
+                        style="border:none;border-radius:16px;padding:5px 12px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;background:var(--primary);color:white;">
+                        Categoria
+                    </button>
+                    <button id="tab-conta-btn" onclick="switchChartTab('conta')"
+                        style="border:none;border-radius:16px;padding:5px 12px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;background:transparent;color:var(--muted);">
+                        Multi-Contas
+                    </button>
+                </div>
+            </div>
+            <div id="chart-cat-wrap" style="height:220px;"><canvas id="chartCats"></canvas></div>
+            <div id="chart-conta-wrap" style="display:none;height:220px;"><canvas id="chartContas"></canvas></div>
+        </div>
         <div class="card"><h3>📈 Evolução Anual</h3><div style="height:180px;"><canvas id="chartEvolucao"></canvas></div></div>
     </div>
 
@@ -2423,20 +2439,130 @@ function cancelarNovaCategoria(){
 // =====================================================
 //  CHARTS
 // =====================================================
-let c1,c2;
-function renderCharts(sM,pS){
-    const ctx1=document.getElementById('chartCats').getContext('2d'); if(c1)c1.destroy();
-    const keys=Object.keys(sM);
-    c1=new Chart(ctx1,{type:'doughnut',data:{labels:keys,datasets:[{data:keys.map(x=>sM[x]),backgroundColor:['#3498db','#e74c3c','#27ae60','#f1c40f','#9b59b6','#1abc9c','#e67e22','#95a5a6']}]},options:{maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{boxWidth:10,font:{size:9},color:darkMode?'#ecf0f1':'#2c3e50'}}}}});
-    const ctx2=document.getElementById('chartEvolucao').getContext('2d'); if(c2)c2.destroy();
-    const lM=["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
-    const anoRef=pS.split('-')[0],dRec=[],dDes=[];
-    for(let i=1;i<=12;i++){
-        const m=`${anoRef}-${String(i).padStart(2,'0')}`;
+let c1, c2, cContas;
+let _chartCtxCache = {}; // guarda dados para re-render ao trocar aba
+
+function switchChartTab(tab){
+    const catWrap   = document.getElementById('chart-cat-wrap');
+    const contaWrap = document.getElementById('chart-conta-wrap');
+    const btnCat    = document.getElementById('tab-cat-btn');
+    const btnConta  = document.getElementById('tab-conta-btn');
+
+    if(tab === 'cat'){
+        catWrap.style.display   = 'block';
+        contaWrap.style.display = 'none';
+        btnCat.style.background = 'var(--primary)';   btnCat.style.color = 'white';
+        btnConta.style.background = 'transparent';    btnConta.style.color = 'var(--muted)';
+    } else {
+        catWrap.style.display   = 'none';
+        contaWrap.style.display = 'block';
+        btnCat.style.background = 'transparent';      btnCat.style.color = 'var(--muted)';
+        btnConta.style.background = 'var(--primary)'; btnConta.style.color = 'white';
+        // Re-renderiza gráfico contas (canvas pode ter sido invisível)
+        if(_chartCtxCache.pSel) _renderContaChart(_chartCtxCache.pSel);
+    }
+}
+
+function _renderContaChart(pSel){
+    const el = document.getElementById('chartContas'); if(!el) return;
+    if(cContas) cContas.destroy();
+
+    // Soma despesas por conta no período
+    const porConta = {};
+    bd.filter(i => i.data.startsWith(pSel) && i.tipo === 'Despesa' && i.conta).forEach(i => {
+        const nome = contaNome(i.conta) || 'Sem conta';
+        porConta[nome] = (porConta[nome] || 0) + i.valor;
+    });
+
+    // Também soma despesas sem conta
+    const semConta = bd.filter(i => i.data.startsWith(pSel) && i.tipo === 'Despesa' && !i.conta)
+                       .reduce((s, i) => s + i.valor, 0);
+    if(semConta > 0) porConta['Sem conta'] = (porConta['Sem conta'] || 0) + semConta;
+
+    const labels = Object.keys(porConta);
+    const values = labels.map(k => porConta[k]);
+    // Cores baseadas nas cores das contas cadastradas
+    const bgColors = labels.map(nome => {
+        const c = contas.find(x => x.nome === nome);
+        return c ? c.cor : '#95a5a6';
+    });
+
+    cContas = new Chart(el.getContext('2d'), {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data: values, backgroundColor: bgColors }] },
+        options: {
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: { boxWidth: 10, font: { size: 9 }, color: darkMode ? '#ecf0f1' : '#2c3e50' }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx){
+                            const total = values.reduce((a,b)=>a+b,0);
+                            const pct = total > 0 ? ((ctx.parsed/total)*100).toFixed(1) : 0;
+                            return ` ${fmt(ctx.parsed)} (${pct}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function renderCharts(sM, pS){
+    _chartCtxCache.pSel = pS;
+
+    // Gráfico por categoria
+    const ctx1 = document.getElementById('chartCats').getContext('2d');
+    if(c1) c1.destroy();
+    const keys = Object.keys(sM);
+    c1 = new Chart(ctx1, {
+        type: 'doughnut',
+        data: {
+            labels: keys,
+            datasets: [{ data: keys.map(x=>sM[x]), backgroundColor: ['#3498db','#e74c3c','#27ae60','#f1c40f','#9b59b6','#1abc9c','#e67e22','#95a5a6','#d35400','#2980b9','#8e44ad','#16a085'] }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right', labels: { boxWidth: 10, font: { size: 9 }, color: darkMode ? '#ecf0f1' : '#2c3e50' } },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx){
+                            const total = keys.map(x=>sM[x]).reduce((a,b)=>a+b,0);
+                            const pct = total > 0 ? ((ctx.parsed/total)*100).toFixed(1) : 0;
+                            return ` ${fmt(ctx.parsed)} (${pct}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Gráfico por conta (só renderiza se aba estiver visível)
+    const contaWrap = document.getElementById('chart-conta-wrap');
+    if(contaWrap && contaWrap.style.display !== 'none') _renderContaChart(pS);
+
+    // Gráfico evolução anual
+    const ctx2 = document.getElementById('chartEvolucao').getContext('2d');
+    if(c2) c2.destroy();
+    const lM = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+    const anoRef = pS.split('-')[0], dRec = [], dDes = [];
+    for(let i = 1; i <= 12; i++){
+        const m = `${anoRef}-${String(i).padStart(2,'0')}`;
         dRec.push(bd.filter(x=>x.data.startsWith(m)&&x.tipo==='Receita'&&!BENS_LISTA.includes(x.cat)).reduce((a,b)=>a+b.valor,0));
         dDes.push(bd.filter(x=>x.data.startsWith(m)&&x.tipo==='Despesa'&&!BENS_LISTA.includes(x.cat)).reduce((a,b)=>a+b.valor,0));
     }
-    c2=new Chart(ctx2,{type:'line',data:{labels:lM,datasets:[{label:'Rec',data:dRec,borderColor:'#27ae60',tension:0.3,fill:false},{label:'Des',data:dDes,borderColor:'#e74c3c',tension:0.3,fill:false}]},options:{maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{color:darkMode?'#95a5a6':'#7f8c8d',font:{size:9}}}}}});
+    c2 = new Chart(ctx2, {
+        type: 'line',
+        data: { labels: lM, datasets: [
+            { label: 'Rec', data: dRec, borderColor: '#27ae60', tension: 0.3, fill: false },
+            { label: 'Des', data: dDes, borderColor: '#e74c3c', tension: 0.3, fill: false }
+        ]},
+        options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: darkMode ? '#95a5a6' : '#7f8c8d', font: { size: 9 } } } } }
+    });
 }
 
 // =====================================================
