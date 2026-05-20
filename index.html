@@ -207,6 +207,14 @@
                 <button onclick="toggleSenhaVis('l-senha',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:1.1rem;">👁</button>
             </div>
             <button class="login-btn" onclick="fazerLogin()">ENTRAR</button>
+            <div style="display:flex;align-items:center;gap:10px;margin:14px 0 0;">
+                <div style="flex:1;height:1px;background:rgba(255,255,255,0.12);"></div>
+                <span style="color:rgba(255,255,255,0.3);font-size:0.72rem;">ou</span>
+                <div style="flex:1;height:1px;background:rgba(255,255,255,0.12);"></div>
+            </div>
+            <button class="login-btn" onclick="entrarComoVisitante()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);margin-top:10px;">
+                👀 Entrar como Visitante
+            </button>
             <div class="login-toggle">Não tem conta? <span onclick="mostrarCadastro()">Cadastrar-se</span></div>
         </div>
         <div id="cadastro-form" style="display:none;">
@@ -259,28 +267,63 @@
             <select id="filtro-periodo" style="display:none;" onchange="render()"></select>
         </div>
         <button class="notif-bell" id="btn-notif" onclick="toggleNotifPanel()" title="Notificações">🔔<span class="notif-badge" id="notif-count" style="display:none;">0</span></button>
+        <span id="visitor-badge" style="display:none;background:#e67e22;color:white;font-size:0.58rem;font-weight:800;padding:2px 7px;border-radius:10px;letter-spacing:0.5px;">VISITANTE</span>
         <button onclick="toggleDark()" id="btn-dark" style="background:none;border:none;color:white;font-size:1.1rem;cursor:pointer;" title="Tema">🌙</button>
         <div class="user-avatar" id="user-avatar" onclick="toggleUserMenu()" title="Perfil"></div>
     </div>
 </div>
 
 <!-- Menu do usuário -->
-<div id="user-menu" style="display:none; position:fixed; top:58px; right:10px; width:220px; background:var(--card-bg); border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,0.2); z-index:2600; padding:16px;">
-    <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid var(--border);">
-        <div id="um-avatar" style="width:40px;height:40px;border-radius:50%;background:var(--secondary);display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:1.1rem;color:white;flex-shrink:0;"></div>
-        <div>
+<div id="user-menu" style="display:none; position:fixed; top:58px; right:10px; width:230px; background:var(--card-bg); border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,0.2); z-index:2600; padding:16px;">
+    <!-- Banner visitante -->
+    <div id="um-visitor-banner" style="display:none;background:#fff3e0;border:1px solid #f39c12;border-radius:8px;padding:8px 10px;margin-bottom:12px;font-size:0.75rem;color:#e67e22;text-align:center;">
+        👀 Você está em <b>modo visitante</b><br>
+        <span style="font-size:0.7rem;color:#a04000;">Os dados não são salvos</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);">
+        <!-- Avatar com foto -->
+        <div id="um-avatar" style="width:44px;height:44px;border-radius:50%;background:var(--secondary);display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:1.2rem;color:white;flex-shrink:0;overflow:hidden;cursor:pointer;border:2px solid var(--border);" onclick="abrirEditarPerfil()" title="Clique para editar perfil"></div>
+        <div style="flex:1;min-width:0;">
             <b id="um-nome" style="font-size:0.9rem;display:block;"></b>
-            <small id="um-email" style="color:var(--muted);font-size:0.72rem;word-break:break-all;"></small>
+            <small id="um-email" style="color:var(--muted);font-size:0.7rem;word-break:break-all;"></small>
         </div>
     </div>
-    <button onclick="abrirEditarPerfil()" style="width:100%;text-align:left;background:none;border:none;padding:8px 4px;color:var(--text);cursor:pointer;font-size:0.85rem;border-radius:6px;">✏️ Editar perfil</button>
+    <div id="um-acoes-usuario">
+        <button onclick="abrirEditarPerfil()" style="width:100%;text-align:left;background:none;border:none;padding:8px 4px;color:var(--text);cursor:pointer;font-size:0.85rem;border-radius:6px;">✏️ Editar perfil</button>
+    </div>
+    <div id="um-acoes-visitante" style="display:none;">
+        <button onclick="voltarParaLogin()" style="width:100%;text-align:left;background:none;border:none;padding:8px 4px;color:var(--secondary);cursor:pointer;font-size:0.85rem;border-radius:6px;font-weight:600;">🔑 Fazer login / Cadastrar</button>
+    </div>
     <button onclick="fazerLogout()" style="width:100%;text-align:left;background:none;border:none;padding:8px 4px;color:var(--danger);cursor:pointer;font-size:0.85rem;border-radius:6px;">🚪 Sair</button>
 </div>
 
 <!-- Modal editar perfil -->
 <div class="modal" id="modalPerfil">
-    <div class="modal-content">
+    <div class="modal-content" style="border-radius:20px 20px 0 0;">
         <h3>✏️ Editar Perfil</h3>
+
+        <!-- Foto de perfil -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:18px;">
+            <div id="perfil-foto-preview" onclick="document.getElementById('perfil-foto-input').click()"
+                style="width:80px;height:80px;border-radius:50%;background:var(--secondary);
+                       display:flex;align-items:center;justify-content:center;
+                       font-size:2rem;font-weight:bold;color:white;
+                       cursor:pointer;overflow:hidden;border:3px solid var(--border);
+                       position:relative;" title="Clique para alterar foto">
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button onclick="document.getElementById('perfil-foto-input').click()"
+                    style="font-size:0.75rem;padding:5px 12px;background:var(--secondary);color:white;border:none;border-radius:20px;cursor:pointer;">
+                    📷 Alterar foto
+                </button>
+                <button id="btn-remover-foto" onclick="removerFotoPerfil()"
+                    style="font-size:0.75rem;padding:5px 12px;background:var(--danger);color:white;border:none;border-radius:20px;cursor:pointer;display:none;">
+                    🗑️ Remover
+                </button>
+            </div>
+            <input type="file" id="perfil-foto-input" accept="image/*" style="display:none;" onchange="previewFotoPerfil(this)">
+        </div>
+
         <label style="font-size:0.8rem;color:var(--muted);margin-bottom:4px;display:block;">Nome</label>
         <input type="text" id="p-nome" placeholder="Seu nome">
         <label style="font-size:0.8rem;color:var(--muted);margin-bottom:4px;display:block;">Nova senha (deixe em branco para manter)</label>
@@ -2688,15 +2731,92 @@ function importarDados(event){
 //  AUTENTICAÇÃO (localStorage simples, multi-usuário)
 // =====================================================
 let usuarioAtual = null;
+let _modoVisitante = false;
 
-function _hashSenha(s){ // ofuscação básica (não criptografia real)
-    let h=0; for(let i=0;i<s.length;i++) h=(Math.imul(31,h)+s.charCodeAt(i))|0;
-    return h.toString(36);
-}
+function _hashSenha(s){ let h=0; for(let i=0;i<s.length;i++) h=(Math.imul(31,h)+s.charCodeAt(i))|0; return h.toString(36); }
 function _usuarios(){ return JSON.parse(localStorage.getItem('will_users_v1')||'[]'); }
 function _salvarUsuarios(arr){ localStorage.setItem('will_users_v1',JSON.stringify(arr)); }
 function _chaveUsuario(uid){ return `will_dados_${uid}`; }
 function _primeiraLetra(nome){ return (nome||'U')[0].toUpperCase(); }
+function _chaveFoto(uid){ return `will_foto_${uid}`; }
+
+// ─── FOTO DE PERFIL ───
+function _getFoto(uid){ return localStorage.getItem(_chaveFoto(uid)) || null; }
+function _salvarFoto(uid, base64){ localStorage.setItem(_chaveFoto(uid), base64); }
+function _removerFotoStorage(uid){ localStorage.removeItem(_chaveFoto(uid)); }
+
+function _renderAvatar(el, user){
+    if(!el) return;
+    const foto = user && !_modoVisitante ? _getFoto(user.id) : null;
+    if(foto){
+        el.innerHTML = '';
+        el.style.background = 'transparent';
+        const img = document.createElement('img');
+        img.src = foto;
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;';
+        el.appendChild(img);
+    } else {
+        el.innerHTML = _primeiraLetra(user?.nome || 'V');
+        el.style.background = _modoVisitante ? '#e67e22' : 'var(--secondary)';
+    }
+}
+
+function previewFotoPerfil(input){
+    const file = input.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e){
+        const base64 = e.target.result;
+        const prev = document.getElementById('perfil-foto-preview');
+        prev.innerHTML = '';
+        const img = document.createElement('img');
+        img.src = base64;
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+        prev.appendChild(img);
+        prev.dataset.novaFoto = base64;
+        document.getElementById('btn-remover-foto').style.display = 'inline-block';
+    };
+    reader.readAsDataURL(file);
+}
+
+function removerFotoPerfil(){
+    const prev = document.getElementById('perfil-foto-preview');
+    prev.dataset.novaFoto = '';   // string vazia = remover
+    prev.innerHTML = _primeiraLetra(usuarioAtual?.nome || 'U');
+    prev.style.background = 'var(--secondary)';
+    document.getElementById('btn-remover-foto').style.display = 'none';
+}
+
+// ─── VISITANTE ───
+function entrarComoVisitante(){
+    _modoVisitante = true;
+    const visitorUser = { id:'__guest__', nome:'Visitante', email:'visitante@financeiro.pro' };
+    usuarioAtual = visitorUser;
+    // Carrega dados demo isolados (não salva nada)
+    bd = []; metas = []; investimentos = []; recorrentes = []; metasInv = [];
+    cats = { Despesa:['Alimentação','Transporte','Moradia','Lazer','Saúde'], Receita:['Salário','Freelance'] };
+    contas = [{id:1,nome:'Demo Conta',tipo:'Corrente',cor:'#e67e22'}];
+    document.getElementById('login-screen').classList.add('hidden');
+    _atualizarHeaderUsuario();
+    _primeiroRender = false;   // visitante não recebe toasts de alerta
+    _alertasPeriodo = '';
+    initFiltro(); render();
+    mostrarToast('👀 Modo visitante — dados não são salvos.', 'info', 5000);
+}
+
+function fecharUserMenu(){ document.getElementById('user-menu').style.display='none'; }
+
+function voltarParaLogin(){
+    // Limpa sessão de visitante e exibe tela de login
+    _modoVisitante = false;
+    usuarioAtual = null;
+    bd=[]; metas=[]; investimentos=[]; recorrentes=[]; contas=[]; metasInv=[];
+    document.getElementById('user-menu').style.display='none';
+    document.getElementById('l-email').value='';
+    document.getElementById('l-senha').value='';
+    document.getElementById('login-error').style.display='none';
+    mostrarLogin();
+    document.getElementById('login-screen').classList.remove('hidden');
+}
 
 function fazerLogin(){
     const email=document.getElementById('l-email').value.trim().toLowerCase();
@@ -2709,6 +2829,7 @@ function fazerLogin(){
     if(!user||user.hash!==_hashSenha(senha)){
         err.innerText='E-mail ou senha incorretos.'; err.style.display='block'; return;
     }
+    _modoVisitante = false;
     _entrarComo(user);
 }
 
@@ -2725,8 +2846,9 @@ function fazerCadastro(){
     if(senha!==senha2){ err.innerText='As senhas não coincidem.'; err.style.display='block'; return; }
     const users=_usuarios();
     if(users.find(u=>u.email===email)){ err.innerText='Este e-mail já está cadastrado.'; err.style.display='block'; return; }
-    const user={ id: Date.now().toString(36), nome, email, hash:_hashSenha(senha) };
+    const user={ id:Date.now().toString(36), nome, email, hash:_hashSenha(senha) };
     users.push(user); _salvarUsuarios(users);
+    _modoVisitante = false;
     _entrarComo(user);
 }
 
@@ -2734,12 +2856,10 @@ function _entrarComo(user){
     usuarioAtual = user;
     localStorage.setItem('will_sessao', JSON.stringify({id:user.id, ts:Date.now()}));
     _carregarDadosUsuario(user.id);
-    // Resetar selects para forçar mês/ano atual
     document.getElementById('filtro-ano').value = '';
     document.getElementById('filtro-mes').value = String(new Date().getMonth()+1).padStart(2,'0');
     document.getElementById('login-screen').classList.add('hidden');
     _atualizarHeaderUsuario();
-    // Garante que alertas apareçam como toasts no primeiro render após login
     _primeiroRender = true;
     _alertasPeriodo = '';
     initFiltro(); render();
@@ -2750,16 +2870,36 @@ function _primeiroNome(nome){ return (nome||'').split(' ')[0]; }
 
 function _atualizarHeaderUsuario(){
     if(!usuarioAtual) return;
-    const letra = _primeiraLetra(usuarioAtual.nome);
-    document.getElementById('user-avatar').innerText = letra;
-    document.getElementById('um-avatar').innerText = letra;
+    const avatarEl = document.getElementById('user-avatar');
+    const umAvatarEl = document.getElementById('um-avatar');
+    _renderAvatar(avatarEl, usuarioAtual);
+    _renderAvatar(umAvatarEl, usuarioAtual);
     document.getElementById('um-nome').innerText = usuarioAtual.nome;
     document.getElementById('um-email').innerText = usuarioAtual.email;
-    // Saudação por horário
+
+    // Badge e banner visitante
+    const visitorBadge = document.getElementById('visitor-badge');
+    const visitorBanner = document.getElementById('um-visitor-banner');
+    const acoesUsuario = document.getElementById('um-acoes-usuario');
+    const acoesVisitante = document.getElementById('um-acoes-visitante');
+    if(_modoVisitante){
+        visitorBadge.style.display = 'inline-flex';
+        visitorBanner.style.display = 'block';
+        acoesUsuario.style.display = 'none';
+        acoesVisitante.style.display = 'block';
+    } else {
+        visitorBadge.style.display = 'none';
+        visitorBanner.style.display = 'none';
+        acoesUsuario.style.display = 'block';
+        acoesVisitante.style.display = 'none';
+    }
+
+    // Saudação
     const h = new Date().getHours();
-    const saud = h<12?'Bom dia':'h<18'?'Boa tarde':'Boa noite';
     const periodo = h<12?'Bom dia':h<18?'Boa tarde':'Boa noite';
-    document.getElementById('header-saudacao').innerText = `${periodo}, ${_primeiroNome(usuarioAtual.nome)}!`;
+    document.getElementById('header-saudacao').innerText = _modoVisitante
+        ? `👀 Modo visitante`
+        : `${periodo}, ${_primeiroNome(usuarioAtual.nome)}!`;
 }
 
 function _carregarDadosUsuario(uid){
@@ -2776,6 +2916,7 @@ function _carregarDadosUsuario(uid){
 
 function fazerLogout(){
     localStorage.removeItem('will_sessao');
+    _modoVisitante = false;
     usuarioAtual=null;
     bd=[]; metas=[]; investimentos=[]; recorrentes=[]; contas=[]; metasInv=[];
     document.getElementById('user-menu').style.display='none';
@@ -2799,11 +2940,31 @@ document.addEventListener('click',e=>{
 
 function abrirEditarPerfil(){
     document.getElementById('user-menu').style.display='none';
+    if(_modoVisitante){ mostrarToast('👀 Visitantes não podem editar perfil.','info',3000); return; }
     document.getElementById('p-nome').value = usuarioAtual.nome;
     document.getElementById('p-senha').value='';
     document.getElementById('p-senha2').value='';
+
+    // Preview da foto atual
+    const prev = document.getElementById('perfil-foto-preview');
+    prev.dataset.novaFoto = '';   // limpa flag de nova foto
+    const fotoAtual = _getFoto(usuarioAtual.id);
+    if(fotoAtual){
+        prev.innerHTML='';
+        const img = document.createElement('img');
+        img.src = fotoAtual;
+        img.style.cssText='width:100%;height:100%;object-fit:cover;';
+        prev.appendChild(img);
+        document.getElementById('btn-remover-foto').style.display='inline-block';
+    } else {
+        prev.innerHTML = _primeiraLetra(usuarioAtual.nome);
+        prev.style.background = 'var(--secondary)';
+        document.getElementById('btn-remover-foto').style.display='none';
+    }
+
     document.getElementById('modalPerfil').style.display='flex';
 }
+
 function salvarPerfil(){
     const nome=document.getElementById('p-nome').value.trim();
     const s1=document.getElementById('p-senha').value;
@@ -2811,6 +2972,17 @@ function salvarPerfil(){
     if(!nome){ mostrarToast('Informe um nome.','warn',3000); return; }
     if(s1&&s1.length<6){ mostrarToast('Senha muito curta.','warn',3000); return; }
     if(s1&&s1!==s2){ mostrarToast('Senhas não coincidem.','warn',3000); return; }
+
+    // Processa foto
+    const prev = document.getElementById('perfil-foto-preview');
+    const novaFoto = prev.dataset.novaFoto;
+    if(novaFoto === ''){
+        // Foi clicado "remover"
+        _removerFotoStorage(usuarioAtual.id);
+    } else if(novaFoto){
+        _salvarFoto(usuarioAtual.id, novaFoto);
+    }
+
     const users=_usuarios();
     const idx=users.findIndex(u=>u.id===usuarioAtual.id);
     users[idx].nome=nome;
@@ -2841,10 +3013,10 @@ function toggleSenhaVis(id,btn){
 
 // Sobrescreve saveAll para salvar por usuário
 function saveAll(){
-    if(!usuarioAtual) return;
+    if(!usuarioAtual || _modoVisitante) return; // visitante não persiste dados
     const dados={bd,metas,cats,investimentos,recorrentes,contas,metasInv};
     localStorage.setItem(_chaveUsuario(usuarioAtual.id), JSON.stringify(dados));
-    localStorage.setItem('will_metas_inv_v1', JSON.stringify(metasInv)); // compat
+    localStorage.setItem('will_metas_inv_v1', JSON.stringify(metasInv));
 }
 
 // =====================================================
