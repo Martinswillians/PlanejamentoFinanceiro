@@ -682,48 +682,124 @@
 
 <!-- ===== MODAIS ===== -->
 <div class="modal" id="modalRegistro">
-    <div class="modal-content">
+    <div class="modal-content" style="max-height:92vh;overflow-y:auto;">
         <h3 id="modal-titulo">Lançamento</h3>
         <input type="hidden" id="f-id">
-        <select id="f-tipo" onchange="loadCats()"><option value="Despesa">Despesa</option><option value="Receita">Receita</option></select>
+
+        <!-- TIPO -->
+        <select id="f-tipo" onchange="loadCats();toggleTransferencia()">
+            <option value="Despesa">Despesa</option>
+            <option value="Receita">Receita</option>
+            <option value="Transferência">↔️ Transferência entre contas</option>
+        </select>
+
+        <!-- CONTA ORIGEM -->
+        <label style="font-size:0.75rem;color:var(--muted);margin-bottom:2px;display:block;" id="label-conta">Conta</label>
         <select id="f-conta"></select>
-        <input type="date" id="f-data">
-        <select id="f-cat" onchange="onCatChange()"></select>
-        <!-- Painel inline: nova categoria -->
-        <div id="nova-cat-painel" style="display:none;background:#f0faf4;border:1.5px solid var(--success);border-radius:10px;padding:10px 12px;margin-top:-6px;margin-bottom:4px;">
-            <div style="font-size:0.75rem;font-weight:700;color:var(--success);margin-bottom:6px;">➕ Nova categoria de <span id="nova-cat-tipo-label">Despesa</span></div>
-            <div style="display:flex;gap:8px;align-items:center;">
-                <input type="text" id="nova-cat-input" placeholder="Nome da categoria..." maxlength="40"
-                    style="flex:1;margin-bottom:0;font-size:0.85rem;"
-                    onkeydown="if(event.key==='Enter'){event.preventDefault();salvarNovaCategoria();}">
-                <button onclick="salvarNovaCategoria()"
-                    style="background:var(--success);color:white;border:none;border-radius:8px;padding:8px 14px;font-weight:bold;white-space:nowrap;">Salvar</button>
-                <button onclick="cancelarNovaCategoria()"
-                    style="background:var(--danger);color:white;border:none;border-radius:8px;padding:8px 10px;font-weight:bold;">✕</button>
-            </div>
-            <div id="nova-cat-erro" style="display:none;font-size:0.73rem;color:var(--danger);margin-top:5px;"></div>
+
+        <!-- CONTA DESTINO (só para transferência) -->
+        <div id="wrap-conta-destino" style="display:none;">
+            <label style="font-size:0.75rem;color:var(--muted);margin-bottom:2px;display:block;">Conta destino</label>
+            <select id="f-conta-destino"></select>
         </div>
+
+        <input type="date" id="f-data">
+
+        <!-- CATEGORIA (oculta em transferência) -->
+        <div id="wrap-cat">
+            <select id="f-cat" onchange="onCatChange()"></select>
+            <!-- Painel inline: nova categoria -->
+            <div id="nova-cat-painel" style="display:none;background:#f0faf4;border:1.5px solid var(--success);border-radius:10px;padding:10px 12px;margin-top:-6px;margin-bottom:4px;">
+                <div style="font-size:0.75rem;font-weight:700;color:var(--success);margin-bottom:6px;">➕ Nova categoria de <span id="nova-cat-tipo-label">Despesa</span></div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <input type="text" id="nova-cat-input" placeholder="Nome da categoria..." maxlength="40"
+                        style="flex:1;margin-bottom:0;font-size:0.85rem;"
+                        onkeydown="if(event.key==='Enter'){event.preventDefault();salvarNovaCategoria();}">
+                    <button onclick="salvarNovaCategoria()" style="background:var(--success);color:white;border:none;border-radius:8px;padding:8px 14px;font-weight:bold;white-space:nowrap;">Salvar</button>
+                    <button onclick="cancelarNovaCategoria()" style="background:var(--danger);color:white;border:none;border-radius:8px;padding:8px 10px;font-weight:bold;">✕</button>
+                </div>
+                <div id="nova-cat-erro" style="display:none;font-size:0.73rem;color:var(--danger);margin-top:5px;"></div>
+            </div>
+        </div>
+
         <input type="text" id="f-desc" placeholder="Descrição">
         <input type="text" id="f-valor" oninput="maskMoeda(this)" placeholder="R$ 0,00">
-        <!-- PARCELAMENTO -->
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.85rem;color:var(--muted);">
-                <input type="checkbox" id="f-parcelado" onchange="toggleParcelado()" style="width:auto;margin:0;"> Parcelado
-            </label>
-            <div id="parcelas-campo" style="display:none;flex:1;">
-                <input type="number" id="f-parcelas" min="2" max="60" placeholder="Nº parcelas"
-                    inputmode="numeric" pattern="[0-9]*"
-                    oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/^0+/,'')||''"
-                    onkeydown="return /[0-9]|Backspace|Delete|ArrowLeft|ArrowRight|Tab/.test(event.key)"
-                    style="margin-bottom:0;">
+
+        <!-- TAGS PERSONALIZADAS -->
+        <div style="margin-bottom:10px;">
+            <label style="font-size:0.75rem;color:var(--muted);margin-bottom:4px;display:block;">🏷️ Tags <span style="font-size:0.68rem;">(opcional — separe por vírgula)</span></label>
+            <input type="text" id="f-tags" placeholder="ex: viagem, família, urgente"
+                style="margin-bottom:0;font-size:0.82rem;">
+            <div id="f-tags-preview" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;"></div>
+        </div>
+
+        <!-- COMPROVANTE / FOTO -->
+        <div style="margin-bottom:10px;">
+            <label style="font-size:0.75rem;color:var(--muted);margin-bottom:4px;display:block;">📎 Comprovante <span style="font-size:0.68rem;">(opcional)</span></label>
+            <div style="display:flex;gap:8px;align-items:center;">
+                <button onclick="document.getElementById('f-comprovante-input').click()"
+                    style="flex:1;padding:8px;background:var(--surface);border:1.5px dashed var(--border);border-radius:8px;color:var(--muted);font-size:0.8rem;cursor:pointer;text-align:center;">
+                    📷 Selecionar foto ou PDF
+                </button>
+                <button id="btn-remover-comprovante" onclick="removerComprovante()" style="display:none;padding:8px 10px;background:var(--danger);color:white;border:none;border-radius:8px;font-size:0.8rem;cursor:pointer;">✕</button>
+            </div>
+            <input type="file" id="f-comprovante-input" accept="image/*,application/pdf" style="display:none;" onchange="previewComprovante(this)">
+            <div id="f-comprovante-preview" style="margin-top:6px;display:none;"></div>
+        </div>
+
+        <!-- PARCELAMENTO (oculto em transferência) -->
+        <div id="wrap-parcelado">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.85rem;color:var(--muted);">
+                    <input type="checkbox" id="f-parcelado" onchange="toggleParcelado()" style="width:auto;margin:0;"> Parcelado
+                </label>
+                <div id="parcelas-campo" style="display:none;flex:1;">
+                    <input type="number" id="f-parcelas" min="2" max="60" placeholder="Nº parcelas"
+                        inputmode="numeric" pattern="[0-9]*"
+                        oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/^0+/,'')||''"
+                        onkeydown="return /[0-9]|Backspace|Delete|ArrowLeft|ArrowRight|Tab/.test(event.key)"
+                        style="margin-bottom:0;">
+                </div>
+            </div>
+            <div id="hint-parcelado" style="display:none;background:#eaf4ff;border-left:3px solid #3498db;border-radius:8px;padding:9px 12px;margin-bottom:6px;font-size:0.78rem;color:#2980b9;line-height:1.5;">
+                💡 <b>Informe o nº de parcelas</b> e o <b>valor de cada parcela</b>.<br>O sistema gera um lançamento por mês.
+            </div>
+
+            <!-- REPETIÇÃO PERSONALIZADA -->
+            <div style="margin-bottom:10px;">
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.85rem;color:var(--muted);">
+                    <input type="checkbox" id="f-repetir" onchange="toggleRepeticao()" style="width:auto;margin:0;"> Repetir
+                </label>
+                <div id="repeticao-campo" style="display:none;margin-top:8px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;">
+                    <div style="font-size:0.72rem;color:var(--muted);margin-bottom:6px;font-weight:600;">FREQUÊNCIA</div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+                        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.8rem;background:var(--card-bg);border:1px solid var(--border);border-radius:20px;padding:4px 10px;">
+                            <input type="radio" name="freq" value="semanal" style="width:auto;margin:0;"> Semanal
+                        </label>
+                        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.8rem;background:var(--card-bg);border:1px solid var(--border);border-radius:20px;padding:4px 10px;">
+                            <input type="radio" name="freq" value="quinzenal" style="width:auto;margin:0;"> Quinzenal
+                        </label>
+                        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.8rem;background:var(--card-bg);border:1px solid var(--border);border-radius:20px;padding:4px 10px;">
+                            <input type="radio" name="freq" value="mensal" checked style="width:auto;margin:0;"> Mensal
+                        </label>
+                        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.8rem;background:var(--card-bg);border:1px solid var(--border);border-radius:20px;padding:4px 10px;">
+                            <input type="radio" name="freq" value="anual" style="width:auto;margin:0;"> Anual
+                        </label>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <label style="font-size:0.78rem;color:var(--muted);white-space:nowrap;">Repetir por</label>
+                        <input type="number" id="f-repeticoes" min="2" max="104" value="12"
+                            inputmode="numeric"
+                            oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+                            style="width:60px;margin-bottom:0;font-size:0.85rem;text-align:center;">
+                        <label style="font-size:0.78rem;color:var(--muted);">vezes</label>
+                    </div>
+                    <div id="repeticao-preview" style="font-size:0.72rem;color:var(--secondary);margin-top:6px;"></div>
+                </div>
             </div>
         </div>
-        <!-- Hint parcelamento -->
-        <div id="hint-parcelado" style="display:none;background:#eaf4ff;border-left:3px solid #3498db;border-radius:8px;padding:9px 12px;margin-bottom:10px;font-size:0.78rem;color:#2980b9;line-height:1.5;">
-            💡 <b>Informe o nº de parcelas</b> e o <b>valor de cada parcela</b>.<br>
-            O sistema irá gerar automaticamente um lançamento por mês.
-        </div>
-        <button onclick="salvarLancamento()" style="width:100%;background:var(--success);color:white;padding:15px;border:none;border-radius:10px;font-weight:bold;">SALVAR</button>
+
+        <button onclick="salvarLancamento()" style="width:100%;background:var(--success);color:white;padding:15px;border:none;border-radius:10px;font-weight:bold;margin-top:4px;">SALVAR</button>
         <button onclick="fecharModal('modalRegistro')" style="width:100%;margin-top:10px;border:none;background:none;color:var(--muted);">Cancelar</button>
     </div>
 </div>
@@ -1187,13 +1263,126 @@ function renderRecorrentes(){
         : '';
 }
 
+// =====================================================
+//  TRANSFERÊNCIA ENTRE CONTAS
+// =====================================================
+function toggleTransferencia(){
+    const tipo = document.getElementById('f-tipo').value;
+    const isTransf = tipo === 'Transferência';
+    document.getElementById('wrap-conta-destino').style.display = isTransf ? 'block' : 'none';
+    document.getElementById('wrap-cat').style.display           = isTransf ? 'none'  : 'block';
+    document.getElementById('wrap-parcelado').style.display     = isTransf ? 'none'  : 'block';
+    document.getElementById('label-conta').innerText            = isTransf ? 'Conta origem' : 'Conta';
+    if(isTransf) loadContasSelect('f-conta-destino');
+}
+
+// =====================================================
+//  TAGS PERSONALIZADAS
+// =====================================================
+function atualizarTagsPreview(){
+    const val = document.getElementById('f-tags').value;
+    const preview = document.getElementById('f-tags-preview');
+    const tags = val.split(',').map(t=>t.trim()).filter(Boolean);
+    preview.innerHTML = tags.map(t =>
+        `<span style="background:var(--secondary);color:white;font-size:0.7rem;padding:2px 8px;border-radius:12px;">${t}</span>`
+    ).join('');
+}
+
+// =====================================================
+//  COMPROVANTE / FOTO
+// =====================================================
+let _comprovanteBase64 = null;
+let _comprovanteType   = null;
+
+function previewComprovante(input){
+    const file = input.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e){
+        _comprovanteBase64 = e.target.result;
+        _comprovanteType   = file.type;
+        const prev = document.getElementById('f-comprovante-preview');
+        prev.style.display = 'block';
+        if(file.type.startsWith('image/')){
+            prev.innerHTML = `<img src="${_comprovanteBase64}" style="max-width:100%;max-height:120px;border-radius:8px;object-fit:contain;">`;
+        } else {
+            prev.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:0.8rem;color:var(--muted);">📄 ${file.name}</div>`;
+        }
+        document.getElementById('btn-remover-comprovante').style.display = 'inline-block';
+    };
+    reader.readAsDataURL(file);
+}
+
+function removerComprovante(){
+    _comprovanteBase64 = null; _comprovanteType = null;
+    document.getElementById('f-comprovante-input').value = '';
+    document.getElementById('f-comprovante-preview').style.display = 'none';
+    document.getElementById('f-comprovante-preview').innerHTML = '';
+    document.getElementById('btn-remover-comprovante').style.display = 'none';
+}
+
+function verComprovante(base64, tipo){
+    const w = window.open();
+    if(tipo && tipo.startsWith('image/')){
+        w.document.write(`<img src="${base64}" style="max-width:100%;">`);
+    } else {
+        w.document.write(`<iframe src="${base64}" style="width:100%;height:100vh;border:none;"></iframe>`);
+    }
+}
+
+// =====================================================
+//  REPETIÇÃO PERSONALIZADA
+// =====================================================
+function toggleRepeticao(){
+    const chk = document.getElementById('f-repetir').checked;
+    document.getElementById('repeticao-campo').style.display = chk ? 'block' : 'none';
+    if(chk) atualizarPreviewRepeticao();
+}
+
+function atualizarPreviewRepeticao(){
+    const freq = document.querySelector('input[name="freq"]:checked')?.value || 'mensal';
+    const vezes = parseInt(document.getElementById('f-repeticoes').value) || 2;
+    const data = document.getElementById('f-data').value;
+    const labels = {semanal:'semanas',quinzenal:'quinzenas',mensal:'meses',anual:'anos'};
+    const prev = document.getElementById('repeticao-preview');
+    if(!data){ prev.innerText = ''; return; }
+    // Calcula data final
+    const d = new Date(data+'T12:00:00');
+    const dias = {semanal:7, quinzenal:15, mensal:0, anual:0};
+    let dataFinal = new Date(d);
+    for(let i=1;i<vezes;i++){
+        if(freq==='mensal') dataFinal = new Date(dataFinal.getFullYear(), dataFinal.getMonth()+1, dataFinal.getDate());
+        else if(freq==='anual') dataFinal = new Date(dataFinal.getFullYear()+1, dataFinal.getMonth(), dataFinal.getDate());
+        else dataFinal = new Date(dataFinal.getTime() + dias[freq]*24*60*60*1000);
+    }
+    prev.innerText = `📅 ${vezes}× até ${dataFinal.toLocaleDateString('pt-BR')}`;
+}
+
+function gerarDatasRepeticao(dataInicio, freq, vezes){
+    const datas = [];
+    let d = new Date(dataInicio+'T12:00:00');
+    const dias = {semanal:7, quinzenal:15};
+    for(let i=0; i<vezes; i++){
+        datas.push(d.toISOString().split('T')[0]);
+        if(freq==='semanal'||freq==='quinzenal'){
+            d = new Date(d.getTime() + dias[freq]*24*60*60*1000);
+        } else if(freq==='mensal'){
+            d = new Date(d.getFullYear(), d.getMonth()+1, d.getDate());
+        } else if(freq==='anual'){
+            d = new Date(d.getFullYear()+1, d.getMonth(), d.getDate());
+        }
+    }
+    return datas;
+}
+
 function toggleParcelado(){
     const chk = document.getElementById('f-parcelado').checked;
     document.getElementById('parcelas-campo').style.display = chk ? 'block' : 'none';
     document.getElementById('hint-parcelado').style.display = chk ? 'block' : 'none';
     if(chk){
-        // Atualiza placeholder do campo valor para deixar claro que é por parcela
         document.getElementById('f-valor').placeholder = 'R$ 0,00 (valor por parcela)';
+        // Desmarca repetir se parcelado
+        document.getElementById('f-repetir').checked = false;
+        toggleRepeticao();
     } else {
         document.getElementById('f-valor').placeholder = 'R$ 0,00';
     }
@@ -1622,10 +1811,20 @@ function renderExtrato(ctx) {
         var cc = i.conta
             ? '<span class="conta-chip" style="background:'+contaCor(i.conta)+'22;color:'+contaCor(i.conta)+';">'+contaNome(i.conta)+'</span>'
             : '';
+        var tagsHtml = (i.tags && i.tags.length)
+            ? '<div style="margin-top:2px;display:flex;flex-wrap:wrap;gap:3px;">'
+              + i.tags.map(t=>`<span style="background:var(--secondary);color:white;font-size:0.62rem;padding:1px 6px;border-radius:10px;">${t}</span>`).join('')
+              + '</div>'
+            : '';
+        var comproHTML = i.comprovante
+            ? `<span onclick="verComprovante('${i.comprovante}','${i.comprovanteTipo||''}')" title="Ver comprovante" style="cursor:pointer;font-size:1rem;">📎</span>`
+            : '';
         return '<div class="item-lista">'
             +'<div class="item-info"><b>'+i.desc+cc+'</b>'
+            +tagsHtml
             +'<small>'+i.data.split('-').reverse().join('/')+' • '+i.cat+'</small></div>'
-            +'<div style="display:flex;align-items:center;gap:12px;">'
+            +'<div style="display:flex;align-items:center;gap:10px;">'
+            +comproHTML
             +'<b style="color:'+(i.tipo==='Receita'?'var(--success)':'var(--danger)')+'">'+fmt(i.valor)+'</b>'
             +'<span onclick="editarLancamento('+i.id+')" style="cursor:pointer;">✏️</span>'
             +'<span onclick="excluirLanc('+i.id+')" style="cursor:pointer;">❌</span>'
@@ -1892,95 +2091,113 @@ function abrirDrill(cat,tipo,periodo){
 // =====================================================
 function salvarLancamento(){
     const idEx      = document.getElementById('f-id').value;
+    const tipo      = document.getElementById('f-tipo').value;
     const parcelado = document.getElementById('f-parcelado').checked;
+    const repetir   = document.getElementById('f-repetir').checked;
     const nParcelas = parcelado ? parseInt(document.getElementById('f-parcelas').value || 1) : 1;
 
-    // Bloqueia se o usuário não finalizou a criação de nova categoria
-    const catVal = document.getElementById('f-cat').value;
-    if(catVal === '__nova__'){
+    // Bloqueia se categoria pendente
+    if(tipo !== 'Transferência' && document.getElementById('f-cat').value === '__nova__'){
         document.getElementById('nova-cat-painel').style.display = 'block';
         document.getElementById('nova-cat-erro').innerText = 'Salve a nova categoria antes de continuar.';
         document.getElementById('nova-cat-erro').style.display = 'block';
         document.getElementById('nova-cat-input').focus();
         return;
     }
+
+    // Tags
+    const tagsRaw = document.getElementById('f-tags').value;
+    const tags = tagsRaw.split(',').map(t=>t.trim()).filter(Boolean);
+
     const base = {
-        id:    idEx ? parseInt(idEx) : Date.now(),
-        data:  document.getElementById('f-data').value,
-        tipo:  document.getElementById('f-tipo').value,
-        cat:   document.getElementById('f-cat').value,
-        valor: parseMoeda(document.getElementById('f-valor').value),
-        desc:  document.getElementById('f-desc').value || document.getElementById('f-cat').value,
-        conta: document.getElementById('f-conta').value
+        id:          idEx ? parseInt(idEx) : Date.now(),
+        data:        document.getElementById('f-data').value,
+        tipo:        tipo,
+        cat:         tipo === 'Transferência' ? 'Transferência' : document.getElementById('f-cat').value,
+        valor:       parseMoeda(document.getElementById('f-valor').value),
+        desc:        document.getElementById('f-desc').value || (tipo === 'Transferência' ? 'Transferência' : document.getElementById('f-cat').value),
+        conta:       document.getElementById('f-conta').value,
+        tags:        tags.length > 0 ? tags : undefined,
+        comprovante: _comprovanteBase64 || undefined,
+        comprovanteTipo: _comprovanteType || undefined
     };
+
     if(!base.data || base.valor <= 0) return;
 
-    // Habilita campos que possam estar disabled antes de ler
-    document.getElementById('f-parcelado').disabled = false;
-    document.getElementById('f-parcelas').disabled  = false;
-
-    const recriarFuturos = window._recriarParcelasFuturas;
-
-    if(recriarFuturos){
-        const grupoId = window._parcelaGrupoAtual;
-        const dataRef = window._parcelaDataRef || base.data;
-        // nParcelas já foi lido do campo (calculado e exibido como somente leitura)
-        const restantes = nParcelas;
-
-        // Recria parcelas a partir da data de referência com numeração correta
-        const jaPassaram = window._parcelasPassadas || 0;
-        const totalFinal = jaPassaram + restantes;
-
-        const dia = parseInt(dataRef.split('-')[2]) || 1;
-        const [anoRef, mesRef] = dataRef.split('-').map(Number);
-        const novasParcelas = [];
-        for(let i = 0; i < restantes; i++){
-            let m = mesRef + i, a = anoRef;
-            while(m > 12){ m -= 12; a++; }
-            const dataP = `${a}-${String(m).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
-            novasParcelas.push({
-                id:           Date.now() + i,
-                data:         dataP,
-                tipo:         base.tipo,
-                cat:          base.cat,
-                valor:        base.valor,
-                desc:         `${base.desc.replace(/ \(\d+\/\d+\)/,'')} (${jaPassaram + i + 1}/${totalFinal})`,
-                conta:        base.conta,
-                parcelaGrupo: grupoId
-            });
+    // ── TRANSFERÊNCIA ──
+    if(tipo === 'Transferência'){
+        const contaDest = document.getElementById('f-conta-destino').value;
+        if(!contaDest || contaDest === base.conta){
+            mostrarToast('⚠️ Selecione contas de origem e destino diferentes.','warning',3500);
+            return;
         }
-
-        // Garante que parcelas já passadas mantêm a numeração original
-        bd.filter(x => x.parcelaGrupo === grupoId).forEach((x, idx) => {
-            x.desc = x.desc.replace(/ \(\d+\/\d+\)/, ` (${idx + 1}/${totalFinal})`);
-        });
-
-        bd.push(...novasParcelas);
-
-        // Limpa flags
+        const saida   = {...base, id:Date.now(),   tipo:'Despesa', cat:'Transferência', desc:`Transferência → ${contaNome(parseInt(contaDest))}`};
+        const entrada = {...base, id:Date.now()+1, tipo:'Receita', cat:'Transferência', desc:`Transferência ← ${contaNome(parseInt(base.conta))}`, conta:parseInt(contaDest)};
+        bd.push(saida, entrada);
         window._recriarParcelasFuturas = false;
-        window._parcelaGrupoAtual      = null;
-        window._parcelaDataRef         = null;
-        window._dadosParcelaEdicao     = null;
-        window._totalParcelasGrupo     = 0;
-        window._parcelasPassadas       = 0;
-        _parcelaFuturaGrupo = null;
-        _parcelaFuturaData  = null;
-
         saveAll(); fecharModal('modalRegistro'); initFiltro(); render();
-        mostrarToast('✅ Parcelas futuras atualizadas.', 'success', 4000);
+        mostrarToast('↔️ Transferência registrada!','success',3500);
         return;
     }
 
+    const recriarFuturos = window._recriarParcelasFuturas;
+
+    // ── EDIÇÃO FUTUROS ──
+    if(recriarFuturos){
+        const grupoId   = window._parcelaGrupoAtual;
+        const dataRef   = window._parcelaDataRef || base.data;
+        const restantes = nParcelas;
+        const jaPassaram = window._parcelasPassadas || 0;
+        const totalFinal = jaPassaram + restantes;
+        const dia = parseInt(dataRef.split('-')[2]) || 1;
+        const [anoRef, mesRef] = dataRef.split('-').map(Number);
+        const novasParcelas = [];
+        for(let i=0; i<restantes; i++){
+            let m=mesRef+i, a=anoRef;
+            while(m>12){m-=12;a++;}
+            const dataP=`${a}-${String(m).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+            novasParcelas.push({...base, id:Date.now()+i, data:dataP,
+                desc:`${base.desc.replace(/ \(\d+\/\d+\)/,'')} (${jaPassaram+i+1}/${totalFinal})`,
+                parcelaGrupo:grupoId});
+        }
+        bd.filter(x=>x.parcelaGrupo===grupoId).forEach((x,idx)=>{
+            x.desc=x.desc.replace(/ \(\d+\/\d+\)/,` (${idx+1}/${totalFinal})`);
+        });
+        bd.push(...novasParcelas);
+        window._recriarParcelasFuturas=false; window._parcelaGrupoAtual=null;
+        window._parcelaDataRef=null; window._dadosParcelaEdicao=null;
+        window._totalParcelasGrupo=0; window._parcelasPassadas=0;
+        _parcelaFuturaGrupo=null; _parcelaFuturaData=null;
+        saveAll(); fecharModal('modalRegistro'); initFiltro(); render();
+        mostrarToast('✅ Parcelas futuras atualizadas.','success',4000);
+        return;
+    }
+
+    // ── PARCELAMENTO ──
     if(nParcelas > 1){
         const parcelas = gerarParcelas(base, nParcelas);
         bd.push(...parcelas);
+
+    // ── REPETIÇÃO PERSONALIZADA ──
+    } else if(repetir){
+        const freq  = document.querySelector('input[name="freq"]:checked')?.value || 'mensal';
+        const vezes = parseInt(document.getElementById('f-repeticoes').value) || 2;
+        const datas = gerarDatasRepeticao(base.data, freq, vezes);
+        const grupoRep = Date.now();
+        datas.forEach((dt, i) => {
+            bd.push({...base, id:Date.now()+i, data:dt,
+                desc:`${base.desc} (${i+1}/${vezes})`,
+                repeticaoGrupo: grupoRep, repeticaoFreq: freq});
+        });
+
+    // ── LANÇAMENTO SIMPLES / EDIÇÃO ──
     } else {
-        if(idEx){ const idx = bd.findIndex(x => x.id === base.id); bd[idx] = base; }
+        if(idEx){ const idx=bd.findIndex(x=>x.id===base.id); if(idx>-1) bd[idx]=base; else bd.push(base); }
         else bd.push(base);
     }
 
     window._recriarParcelasFuturas = false;
+    removerComprovante();
     saveAll(); fecharModal('modalRegistro'); initFiltro(); render();
 }
 // =====================================================
@@ -2111,23 +2328,44 @@ function editarLancamento(id){
         _abrirEscolhaParcelaAcao('editar', id);
         return;
     }
-    // Lançamento simples — edição direta, campos todos habilitados
     window._recriarParcelasFuturas = false;
     document.getElementById('modal-titulo').innerText = 'Editar Transação';
     document.getElementById('f-id').value   = i.id;
-    document.getElementById('f-tipo').value = i.tipo; loadCats();
+    document.getElementById('f-tipo').value = i.tipo;
+    toggleTransferencia();
+    loadCats();
     loadContasSelect('f-conta', i.conta);
+    loadContasSelect('f-conta-destino');
     document.getElementById('f-cat').value  = i.cat;
     document.getElementById('f-data').value = i.data;
     document.getElementById('f-desc').value = i.desc;
     document.getElementById('f-valor').value = fmt(i.valor).replace('R$','').trim();
     document.getElementById('f-valor').placeholder = 'R$ 0,00';
+    // Tags
+    document.getElementById('f-tags').value = i.tags ? i.tags.join(', ') : '';
+    atualizarTagsPreview();
+    // Comprovante
+    removerComprovante();
+    if(i.comprovante){
+        _comprovanteBase64 = i.comprovante;
+        _comprovanteType   = i.comprovanteTipo || null;
+        const prev = document.getElementById('f-comprovante-preview');
+        prev.style.display='block';
+        if(i.comprovanteTipo && i.comprovanteTipo.startsWith('image/')){
+            prev.innerHTML=`<img src="${i.comprovante}" style="max-width:100%;max-height:120px;border-radius:8px;object-fit:contain;">`;
+        } else {
+            prev.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:0.8rem;color:var(--muted);">📄 Comprovante anexado</div>`;
+        }
+        document.getElementById('btn-remover-comprovante').style.display='inline-block';
+    }
     const chk = document.getElementById('f-parcelado');
-    chk.checked = false; chk.disabled = false;
+    chk.checked=false; chk.disabled=false;
     const parcCampo = document.getElementById('f-parcelas');
-    parcCampo.value = ''; parcCampo.disabled = false;
+    parcCampo.value=''; parcCampo.disabled=false;
+    document.getElementById('f-repetir').checked=false;
+    document.getElementById('repeticao-campo').style.display='none';
     toggleParcelado();
-    document.getElementById('modalRegistro').style.display = 'flex';
+    document.getElementById('modalRegistro').style.display='flex';
 }
 
 function excluirLanc(id){
@@ -2458,26 +2696,48 @@ function excluirCategoria(t,n){ if(confirm(`Excluir "${n}"?`)){cats[t]=cats[t].f
 function abrirModalRegistro(){
     document.getElementById('modal-titulo').innerText="Novo Lançamento";
     document.getElementById('f-id').value='';
+    document.getElementById('f-tipo').value='Despesa';
     document.getElementById('f-data').valueAsDate=new Date();
     document.getElementById('f-desc').value='';
     document.getElementById('f-valor').value='';
     document.getElementById('f-valor').placeholder='R$ 0,00';
-    // Garante campos habilitados para novo lançamento
+    document.getElementById('f-tags').value='';
+    document.getElementById('f-tags-preview').innerHTML='';
+    // Parcelado
     const chk = document.getElementById('f-parcelado');
-    chk.checked = false; chk.disabled = false;
+    chk.checked=false; chk.disabled=false;
     const parcCampo = document.getElementById('f-parcelas');
-    parcCampo.value = ''; parcCampo.disabled = false;
+    parcCampo.value=''; parcCampo.disabled=false;
+    // Repetir
+    document.getElementById('f-repetir').checked=false;
+    document.getElementById('repeticao-campo').style.display='none';
+    document.getElementById('f-repeticoes').value='12';
+    document.querySelectorAll('input[name="freq"]').forEach(r=>r.checked=r.value==='mensal');
+    // Comprovante
+    removerComprovante();
+    // Transferência
+    toggleTransferencia();
     toggleParcelado();
     loadCats(); loadContasSelect('f-conta');
-    // Limpa flags de edição de parcela
-    window._recriarParcelasFuturas = false;
-    window._parcelaGrupoAtual      = null;
-    window._parcelaDataRef         = null;
-    window._dadosParcelaEdicao     = null;
-    window._totalParcelasGrupo     = 0;
-    window._parcelasPassadas       = 0;
+    loadContasSelect('f-conta-destino');
+    // Flags parcela
+    window._recriarParcelasFuturas=false; window._parcelaGrupoAtual=null;
+    window._parcelaDataRef=null; window._dadosParcelaEdicao=null;
+    window._totalParcelasGrupo=0; window._parcelasPassadas=0;
     document.getElementById('modalRegistro').style.display='flex';
 }
+
+// Eventos dinâmicos: tags preview e repetição preview
+document.addEventListener('DOMContentLoaded', function(){
+    const tagsInput = document.getElementById('f-tags');
+    if(tagsInput) tagsInput.addEventListener('input', atualizarTagsPreview);
+    document.querySelectorAll('input[name="freq"]').forEach(r =>
+        r.addEventListener('change', atualizarPreviewRepeticao));
+    const repVezes = document.getElementById('f-repeticoes');
+    if(repVezes) repVezes.addEventListener('input', atualizarPreviewRepeticao);
+    const fData = document.getElementById('f-data');
+    if(fData) fData.addEventListener('change', atualizarPreviewRepeticao);
+});
 function abrirModalMeta(){
     document.getElementById('meta-titulo').innerText="Nova Meta";
     document.getElementById('fm-id').value='';
