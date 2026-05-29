@@ -447,7 +447,19 @@
     <!-- ===== EXTRATO ===== -->
     <div id="page-lancamentos" class="page">
         <div class="card">
-            <h3>📜 Extrato Detalhado</h3>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <h3 style="margin:0;">📜 Extrato Detalhado</h3>
+                <div style="display:flex;gap:6px;">
+                    <button onclick="exportarExtratoXLS()" title="Exportar Excel"
+                        style="background:#27ae60;color:white;border:none;border-radius:8px;padding:6px 10px;font-size:0.75rem;font-weight:700;cursor:pointer;">
+                        📊 XLS
+                    </button>
+                    <button onclick="exportarExtratoPDF()" title="Exportar PDF"
+                        style="background:#e74c3c;color:white;border:none;border-radius:8px;padding:6px 10px;font-size:0.75rem;font-weight:700;cursor:pointer;">
+                        📄 PDF
+                    </button>
+                </div>
+            </div>
 
             <!-- Barra de busca + botão filtros -->
             <div style="display:flex;gap:8px;margin-bottom:8px;">
@@ -1714,8 +1726,132 @@ function renderDashboard(ctx) {
 
 // ── 2. Extrato
 // =====================================================
-//  FILTROS MULTI-SELEÇÃO DO EXTRATO
+//  EXPORTAÇÃO DO EXTRATO (XLS e PDF)
 // =====================================================
+function _getItensFiltradosExtrato(){
+    const pSel      = document.getElementById('filtro-periodo')?.value || '';
+    const busca     = (document.getElementById('busca-lanc')||{value:''}).value.toLowerCase();
+    const tiposSel  = _getFiltroExt('fext-tipo');
+    const contasSel = _getFiltroExt('fext-conta');
+    const catsSel   = _getFiltroExt('fext-cat');
+    const todasCats = [...new Set([...(cats.Receita||[]), ...(cats.Despesa||[])])];
+
+    return bd.filter(function(i){
+        if(!i.data.startsWith(pSel)) return false;
+        if(busca && i.desc.toLowerCase().indexOf(busca)===-1 && i.cat.toLowerCase().indexOf(busca)===-1
+            && !(i.tags && i.tags.some(t=>t.toLowerCase().indexOf(busca)!==-1))) return false;
+        if(tiposSel.length>0 && !tiposSel.includes(i.tipo)) return false;
+        if(contasSel.length>0 && !contasSel.includes(String(i.conta||''))) return false;
+        if(catsSel.length>0 && catsSel.length<todasCats.length && !catsSel.includes(i.cat)) return false;
+        return true;
+    }).sort((a,b)=>new Date(b.data)-new Date(a.data));
+}
+
+function exportarExtratoXLS(){
+    const itens = _getItensFiltradosExtrato();
+    if(!itens.length){ mostrarToast('Nenhum lançamento para exportar.','info',3000); return; }
+
+    const pSel = document.getElementById('filtro-periodo')?.value || '';
+
+    // Monta CSV compatível com Excel (separador ;)
+    const BOM = '\uFEFF'; // BOM para UTF-8 no Excel
+    const header = ['Data','Descrição','Tipo','Categoria','Conta','Valor (R$)','Tags'];
+    const rows = itens.map(i => [
+        i.data.split('-').reverse().join('/'),
+        `"${(i.desc||'').replace(/"/g,'""')}"`,
+        i.tipo,
+        i.cat,
+        contaNome(i.conta) || '',
+        i.valor.toFixed(2).replace('.',','),
+        `"${(i.tags||[]).join(', ')}"`
+    ].join(';'));
+
+    // Totais
+    const totalRec = itens.filter(i=>i.tipo==='Receita').reduce((s,i)=>s+i.valor,0);
+    const totalDes = itens.filter(i=>i.tipo==='Despesa').reduce((s,i)=>s+i.valor,0);
+    rows.push('');
+    rows.push(`"Total Receitas";;;;"";${totalRec.toFixed(2).replace('.',',')};`);
+    rows.push(`"Total Despesas";;;;"";${totalDes.toFixed(2).replace('.',',')};`);
+    rows.push(`"Saldo";;;;"";${(totalRec-totalDes).toFixed(2).replace('.',',')};`);
+
+    const csv = BOM + header.join(';') + '\n' + rows.join('\n');
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `extrato_${pSel||'geral'}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    mostrarToast('📊 Extrato exportado para Excel!','success',3500);
+}
+
+function exportarExtratoPDF(){
+    const itens = _getItensFiltradosExtrato();
+    if(!itens.length){ mostrarToast('Nenhum lançamento para exportar.','info',3000); return; }
+
+    const pSel = document.getElementById('filtro-periodo')?.value || '';
+    const totalRec = itens.filter(i=>i.tipo==='Receita').reduce((s,i)=>s+i.valor,0);
+    const totalDes = itens.filter(i=>i.tipo==='Despesa').reduce((s,i)=>s+i.valor,0);
+    const saldo    = totalRec - totalDes;
+
+    const linhas = itens.map(i=>`
+        <tr>
+            <td>${i.data.split('-').reverse().join('/')}</td>
+            <td>${i.desc}${i.tags&&i.tags.length?` <span style="font-size:10px;color:#888;">[${i.tags.join(', ')}]</span>`:''}</td>
+            <td>${i.tipo}</td>
+            <td>${i.cat}</td>
+            <td>${contaNome(i.conta)||''}</td>
+            <td style="text-align:right;color:${i.tipo==='Receita'?'#27ae60':'#e74c3c'};font-weight:bold;">
+                ${fmt(i.valor)}
+            </td>
+        </tr>`).join('');
+
+    const html = `<!DOCTYPE html><html lang="pt-br"><head>
+        <meta charset="UTF-8">
+        <title>Extrato ${pSel}</title>
+        <style>
+            body{font-family:Arial,sans-serif;font-size:12px;margin:20px;color:#333;}
+            h2{color:#2c3e50;margin-bottom:4px;}
+            .sub{color:#888;font-size:11px;margin-bottom:16px;}
+            table{width:100%;border-collapse:collapse;margin-bottom:16px;}
+            th{background:#2c3e50;color:white;padding:7px 8px;text-align:left;font-size:11px;}
+            td{padding:6px 8px;border-bottom:1px solid #eee;font-size:11px;}
+            tr:nth-child(even){background:#f9f9f9;}
+            .totais{display:flex;gap:20px;margin-top:10px;}
+            .total-box{padding:10px 16px;border-radius:8px;font-size:12px;}
+            .rec{background:#e8f8f0;color:#27ae60;}
+            .des{background:#fdf0f0;color:#e74c3c;}
+            .sal{background:#eaf4ff;color:#2980b9;}
+            b{font-weight:700;}
+            @media print{button{display:none;}.print-btn{display:none;}}
+        </style>
+    </head><body>
+        <h2>💰 Financeiro Pro — Extrato Detalhado</h2>
+        <div class="sub">Período: ${pSel||'Todos'} · Gerado em: ${new Date().toLocaleString('pt-BR')} · ${itens.length} lançamento(s)</div>
+        <table>
+            <thead><tr>
+                <th>Data</th><th>Descrição</th><th>Tipo</th>
+                <th>Categoria</th><th>Conta</th><th style="text-align:right">Valor</th>
+            </tr></thead>
+            <tbody>${linhas}</tbody>
+        </table>
+        <div class="totais">
+            <div class="total-box rec"><b>Receitas</b><br>${fmt(totalRec)}</div>
+            <div class="total-box des"><b>Despesas</b><br>${fmt(totalDes)}</div>
+            <div class="total-box sal"><b>Saldo</b><br>${fmt(Math.abs(saldo))}</div>
+        </div>
+        <button class="print-btn" onclick="window.print()" 
+            style="margin-top:20px;padding:10px 20px;background:#2c3e50;color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px;">
+            🖨️ Imprimir / Salvar PDF
+        </button>
+    </body></html>`;
+
+    const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+    const url  = URL.createObjectURL(blob);
+    const w    = window.open(url, '_blank');
+    if(w){ w.onload = ()=>{ URL.revokeObjectURL(url); }; }
+    mostrarToast('📄 PDF aberto em nova aba — use Ctrl+P para salvar.','success',5000);
+}
 function togglePainelFiltrosExt(){
     const p = document.getElementById('painel-filtros-ext');
     const aberto = p.style.display !== 'none';
@@ -1795,7 +1931,8 @@ function renderExtrato(ctx) {
 
     var itensFiltrados = bd.filter(function(i){
         if(!i.data.startsWith(pSel)) return false;
-        if(busca && i.desc.toLowerCase().indexOf(busca) === -1 && i.cat.toLowerCase().indexOf(busca) === -1) return false;
+        if(busca && i.desc.toLowerCase().indexOf(busca) === -1 && i.cat.toLowerCase().indexOf(busca) === -1
+            && !(i.tags && i.tags.some(t => t.toLowerCase().indexOf(busca) !== -1))) return false;
         // Tipo: se nenhum marcado → mostra todos; se marcado → filtra
         if(tiposSel.length > 0 && !tiposSel.includes(i.tipo)) return false;
         // Contas: se nenhuma marcada → mostra todas; se marcado → filtra
