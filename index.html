@@ -446,6 +446,20 @@
 
     <!-- ===== EXTRATO ===== -->
     <div id="page-lancamentos" class="page">
+        <!-- ABAS EXTRATO -->
+        <div style="display:flex;gap:6px;margin-bottom:12px;background:var(--surface);border-radius:12px;padding:4px;">
+            <button id="tab-extrato-btn" onclick="switchExtratoTab('extrato')"
+                style="flex:1;border:none;border-radius:8px;padding:8px;font-size:0.82rem;font-weight:700;cursor:pointer;background:var(--primary);color:white;transition:all 0.2s;">
+                📜 Extrato Detalhado
+            </button>
+            <button id="tab-beneficios-btn" onclick="switchExtratoTab('beneficios')"
+                style="flex:1;border:none;border-radius:8px;padding:8px;font-size:0.82rem;font-weight:700;cursor:pointer;background:transparent;color:var(--muted);transition:all 0.2s;">
+                🎁 Benefícios
+            </button>
+        </div>
+
+        <!-- PAINEL: EXTRATO DETALHADO -->
+        <div id="painel-extrato-detalhado">
         <div class="card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
                 <h3 style="margin:0;">📜 Extrato Detalhado</h3>
@@ -531,6 +545,15 @@
             </div>
             <div id="lista-lancamentos"></div>
         </div>
+        </div><!-- /painel-extrato-detalhado -->
+
+        <!-- PAINEL: BENEFÍCIOS (movido de Bens) -->
+        <div id="painel-extrato-beneficios" style="display:none;">
+            <div class="card">
+                <div id="ben-saldos" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;"></div>
+            </div>
+            <div class="card"><h3>📜 Extrato de Benefícios</h3><div id="lista-ben"></div></div>
+        </div>
     </div>
 
     <!-- ===== METAS ===== -->
@@ -608,12 +631,6 @@
         <div class="card"><h3>📜 Histórico de Aportes</h3><div id="lista-aportes"></div></div>
     </div>
 
-    <!-- ===== BENEFÍCIOS ===== -->
-    <div id="page-beneficios" class="page">
-        <div id="cards-ben" class="stats-grid"></div>
-        <div class="card"><h3>📜 Extrato de Benefícios</h3><div id="lista-ben"></div></div>
-    </div>
-
     <!-- ===== CONTAS RECORRENTES ===== -->
     <div id="page-recorrentes" class="page">
         <div class="card" style="background:var(--primary);color:white;display:flex;justify-content:space-between;align-items:center;">
@@ -684,10 +701,8 @@
 <!-- ===== NAVEGAÇÃO ===== -->
 <nav class="bottom-nav">
     <button class="nav-item active" data-page="dash"         onclick="showPage('dash',this)"><span class="nav-icon">📊</span>Dash</button>
-    <button class="nav-item"        data-page="lancamentos"  onclick="showPage('lancamentos',this)"><span class="nav-icon">📋</span>Extrato</button>
-    <button class="nav-item"        data-page="metas"        onclick="showPage('metas',this)"><span class="nav-icon">🎯</span>Metas</button>
+    <button class="nav-item"        data-page="lancamentos"  onclick="showPage('lancamentos',this)"><span class="nav-icon">📋</span>Extrato</button>    <button class="nav-item"        data-page="metas"        onclick="showPage('metas',this)"><span class="nav-icon">🎯</span>Metas</button>
     <button class="nav-item"        data-page="investimentos" onclick="showPage('investimentos',this)"><span class="nav-icon">💼</span>Invest</button>
-    <button class="nav-item"        data-page="beneficios"   onclick="showPage('beneficios',this)"><span class="nav-icon">🎁</span>Bens</button>
     <button class="nav-item"        data-page="recorrentes"  onclick="showPage('recorrentes',this)"><span class="nav-icon">🔁</span>Fixas</button>
     <button class="nav-item"        data-page="config"       onclick="showPage('config',this)"><span class="nav-icon">⚙️</span>Config</button>
 </nav>
@@ -1726,6 +1741,29 @@ function renderDashboard(ctx) {
 
 // ── 2. Extrato
 // =====================================================
+//  ABAS DO EXTRATO: Detalhado / Benefícios
+// =====================================================
+function switchExtratoTab(tab){
+    const panelExt = document.getElementById('painel-extrato-detalhado');
+    const panelBen = document.getElementById('painel-extrato-beneficios');
+    const btnExt   = document.getElementById('tab-extrato-btn');
+    const btnBen   = document.getElementById('tab-beneficios-btn');
+    if(tab === 'extrato'){
+        panelExt.style.display = 'block';
+        panelBen.style.display = 'none';
+        btnExt.style.background = 'var(--primary)'; btnExt.style.color = 'white';
+        btnBen.style.background = 'transparent';    btnBen.style.color = 'var(--muted)';
+    } else {
+        panelExt.style.display = 'none';
+        panelBen.style.display = 'block';
+        btnExt.style.background = 'transparent';    btnExt.style.color = 'var(--muted)';
+        btnBen.style.background = 'var(--primary)'; btnBen.style.color = 'white';
+        const pSel = document.getElementById('filtro-periodo')?.value || '';
+        renderBeneficios(_calcularPeriodo(pSel));
+    }
+}
+
+// =====================================================
 //  EXPORTAÇÃO DO EXTRATO (XLS e PDF)
 // =====================================================
 function _getItensFiltradosExtrato(){
@@ -1738,6 +1776,8 @@ function _getItensFiltradosExtrato(){
 
     return bd.filter(function(i){
         if(!i.data.startsWith(pSel)) return false;
+        // Benefícios ficam só na aba própria
+        if(BENS_LISTA.includes(i.cat)) return false;
         if(busca && i.desc.toLowerCase().indexOf(busca)===-1 && i.cat.toLowerCase().indexOf(busca)===-1
             && !(i.tags && i.tags.some(t=>t.toLowerCase().indexOf(busca)!==-1))) return false;
         if(tiposSel.length>0 && !tiposSel.includes(i.tipo)) return false;
@@ -1874,8 +1914,9 @@ function _preencherPainelFiltrosExt(){
         </label>`;
     }).join('');
 
-    // Categorias — desmarcadas por padrão
-    const todasCats = [...new Set([...(cats.Receita||[]), ...(cats.Despesa||[])])].sort();
+    // Categorias — desmarcadas por padrão (excluindo benefícios que ficam na própria aba)
+    const todasCats = [...new Set([...(cats.Receita||[]), ...(cats.Despesa||[])])]
+        .filter(c => !BENS_LISTA.includes(c)).sort();
     const catsEl = document.getElementById('fext-cats-lista');
     const selCats = _getFiltroExt('fext-cat');
     catsEl.innerHTML = todasCats.map(c => {
@@ -1931,13 +1972,11 @@ function renderExtrato(ctx) {
 
     var itensFiltrados = bd.filter(function(i){
         if(!i.data.startsWith(pSel)) return false;
+        if(BENS_LISTA.includes(i.cat)) return false; // Benefícios → aba própria
         if(busca && i.desc.toLowerCase().indexOf(busca) === -1 && i.cat.toLowerCase().indexOf(busca) === -1
             && !(i.tags && i.tags.some(t => t.toLowerCase().indexOf(busca) !== -1))) return false;
-        // Tipo: se nenhum marcado → mostra todos; se marcado → filtra
         if(tiposSel.length > 0 && !tiposSel.includes(i.tipo)) return false;
-        // Contas: se nenhuma marcada → mostra todas; se marcado → filtra
         if(contasSel.length > 0 && !contasSel.includes(String(i.conta||''))) return false;
-        // Categorias: se nenhuma marcada → mostra todas; se marcado → filtra
         if(catsSel.length > 0 && !catsSel.includes(i.cat)) return false;
         return true;
     }).sort(function(a,b){ return new Date(b.data)-new Date(a.data); });
@@ -2071,7 +2110,7 @@ function renderBeneficios(ctx) {
     var pSel    = ctx.pSel;
     var bSaldos = ctx.bSaldos;
 
-    document.getElementById('cards-ben').innerHTML = BENS_LISTA.map(function(b){
+    document.getElementById('ben-saldos').innerHTML = BENS_LISTA.map(function(b){
         return '<div class="stat-card" style="border-color:var(--gold)"><small>' + b + '</small>'
              + '<div style="color:var(--primary)">' + fmt(bSaldos[b]) + '</div></div>';
     }).join('');
