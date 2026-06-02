@@ -178,7 +178,7 @@
             background:transparent; color:white; border:none;
             font-size:0.7rem; font-weight:700; outline:none; cursor:pointer;
             padding:0; line-height:1.2; width:auto; text-align:center;
-            -webkit-appearance:none; appearance:none;
+            -webkit-appearance:menulist-button; appearance:auto;
         }
         .filtro-sel option { background:#2c3e50; color:white; }
         .filtro-divider {
@@ -1022,6 +1022,23 @@
 //# sourceMappingURL=chart.umd.min.js.map
 </script>
 
+<!-- Modal escolha ação repetição -->
+<div class="modal" id="modalRepeticaoAcao">
+    <div class="modal-content" style="border-radius:20px 20px 0 0;">
+        <h3 id="rep-acao-titulo" style="margin-bottom:6px;">✏️ Editar Repetição</h3>
+        <p id="rep-acao-subtitulo" style="font-size:0.82rem;color:var(--muted);margin-bottom:18px;">Este lançamento faz parte de uma série. Como deseja aplicar?</p>
+        <button onclick="executarAcaoRepeticao('este')"
+            style="width:100%;background:var(--secondary);color:white;padding:14px;border:none;border-radius:10px;font-weight:bold;margin-bottom:10px;font-size:0.9rem;">
+            📌 Apenas este mês
+        </button>
+        <button onclick="executarAcaoRepeticao('futuros')"
+            style="width:100%;background:var(--primary);color:white;padding:14px;border:none;border-radius:10px;font-weight:bold;margin-bottom:10px;font-size:0.9rem;">
+            🔄 Este e todos os futuros
+        </button>
+        <button onclick="fecharModal('modalRepeticaoAcao')" style="width:100%;margin-top:4px;border:none;background:none;color:var(--muted);padding:10px;">Cancelar</button>
+    </div>
+</div>
+
 <!-- ===== SCRIPT ===== -->
 <script>
 // =====================================================
@@ -1090,10 +1107,22 @@ function showPage(p, el){
 // =====================================================
 const CONTA_CORES = ['#3498db','#27ae60','#e74c3c','#f39c12','#9b59b6','#1abc9c'];
 function contaNome(id){ const c = contas.find(x=>x.id===parseInt(id)); return c?c.nome:'—'; }
+function contaNomeCompleto(id){
+    const c = contas.find(x=>x.id===parseInt(id)); if(!c) return '—';
+    const TIPOS_LABEL = {'Corrente':'C. Corrente','Poupança':'C. Poupança','Cartão':'Cartão de Crédito','Débito':'Cartão de Débito','Carteira':'Carteira','Investimento':'Investimento','Crypto':'Crypto'};
+    // Verifica se há outra conta com mesmo nome
+    const duplicado = contas.filter(x=>x.nome===c.nome).length > 1;
+    return duplicado ? `${c.nome} (${TIPOS_LABEL[c.tipo]||c.tipo})` : c.nome;
+}
 function contaCor(id){ const c = contas.find(x=>x.id===parseInt(id)); return c?c.cor:'#95a5a6'; }
 function loadContasSelect(elId, valorAtual){
+    const TIPOS_LABEL = {'Corrente':'C. Corrente','Poupança':'C. Poupança','Cartão':'Cartão de Crédito','Débito':'Cartão de Débito','Carteira':'Carteira','Investimento':'Investimento','Crypto':'Crypto'};
     const el = document.getElementById(elId);
-    el.innerHTML = contas.map(c=>`<option value="${c.id}" ${c.id===parseInt(valorAtual)?'selected':''}>${c.nome}</option>`).join('');
+    el.innerHTML = contas.map(c => {
+        const duplicado = contas.filter(x=>x.nome===c.nome).length > 1;
+        const label = duplicado ? `${c.nome} (${TIPOS_LABEL[c.tipo]||c.tipo})` : c.nome;
+        return `<option value="${c.id}" ${c.id===parseInt(valorAtual)?'selected':''}>${label}</option>`;
+    }).join('');
 }
 function adicionarConta(){
     const nome = document.getElementById('new-conta-nome').value.trim();
@@ -1985,7 +2014,7 @@ function renderExtrato(ctx) {
 
     var lista = itensFiltrados.map(function(i){
         var cc = i.conta
-            ? '<span class="conta-chip" style="background:'+contaCor(i.conta)+'22;color:'+contaCor(i.conta)+';">'+contaNome(i.conta)+'</span>'
+            ? '<span class="conta-chip" style="background:'+contaCor(i.conta)+'22;color:'+contaCor(i.conta)+';">'+contaNomeCompleto(i.conta)+'</span>'
             : '';
         var tagsHtml = (i.tags && i.tags.length)
             ? '<div style="margin-top:2px;display:flex;flex-wrap:wrap;gap:3px;">'
@@ -2368,8 +2397,23 @@ function salvarLancamento(){
 
     // ── LANÇAMENTO SIMPLES / EDIÇÃO ──
     } else {
-        if(idEx){ const idx=bd.findIndex(x=>x.id===base.id); if(idx>-1) bd[idx]=base; else bd.push(base); }
-        else bd.push(base);
+        if(idEx){
+            const idx = bd.findIndex(x => x.id === base.id);
+            if(idx > -1){
+                // Preserva campos que não estão no formulário
+                const original = bd[idx];
+                bd[idx] = {
+                    ...base,
+                    parcelaGrupo:    original.parcelaGrupo,
+                    repeticaoGrupo:  original.repeticaoGrupo,
+                    repeticaoFreq:   original.repeticaoFreq
+                };
+            } else {
+                bd.push(base);
+            }
+        } else {
+            bd.push(base);
+        }
     }
 
     window._recriarParcelasFuturas = false;
@@ -2500,27 +2544,88 @@ function editarLancamento(id){
     const i = bd.find(x => x.id === id); if(!i) return;
     window._dadosParcelaEdicao = i;
 
+    // Parcelado → modal de escolha parcela
     if(i.parcelaGrupo){
         _abrirEscolhaParcelaAcao('editar', id);
         return;
     }
+    // Repetição → modal de escolha repetição
+    if(i.repeticaoGrupo){
+        window._repeticaoAcaoTipo = 'editar';
+        window._repeticaoAcaoId   = id;
+        document.getElementById('rep-acao-titulo').innerText = '✏️ Editar Repetição';
+        document.getElementById('rep-acao-subtitulo').innerText = 'Este lançamento faz parte de uma série repetida. Como deseja aplicar a alteração?';
+        document.getElementById('modalRepeticaoAcao').style.display = 'flex';
+        return;
+    }
+    // Lançamento simples
+    _abrirEdicaoSimples(i);
+}
+
+function excluirLanc(id){
+    const item = bd.find(x => x.id === id); if(!item) return;
+    if(item.parcelaGrupo){
+        _abrirEscolhaParcelaAcao('excluir', id);
+        return;
+    }
+    if(item.repeticaoGrupo){
+        window._repeticaoAcaoTipo = 'excluir';
+        window._repeticaoAcaoId   = id;
+        document.getElementById('rep-acao-titulo').innerText = '🗑️ Excluir Repetição';
+        document.getElementById('rep-acao-subtitulo').innerText = 'Este lançamento faz parte de uma série repetida. O que deseja excluir?';
+        document.getElementById('modalRepeticaoAcao').style.display = 'flex';
+        return;
+    }
+    if(confirm('Excluir este lançamento?')){ bd = bd.filter(i => i.id !== id); saveAll(); render(); }
+}
+
+function executarAcaoRepeticao(escopo){
+    fecharModal('modalRepeticaoAcao');
+    const id   = window._repeticaoAcaoId;
+    const tipo = window._repeticaoAcaoTipo;
+    const item = bd.find(x => x.id === id); if(!item) return;
+    const grupo   = item.repeticaoGrupo;
+    const dataRef = item.data;
+
+    if(tipo === 'excluir'){
+        if(escopo === 'este'){
+            bd = bd.filter(x => x.id !== id);
+        } else {
+            bd = bd.filter(x => !(x.repeticaoGrupo === grupo && x.data >= dataRef));
+        }
+        saveAll(); render();
+        mostrarToast(escopo === 'este' ? '🗑️ Lançamento excluído.' : '🗑️ Este e futuros excluídos.', 'info', 4000);
+    } else {
+        // editar — se "apenas este" abre edição simples sem grupo
+        // se "futuros" remove futuros e abre modal para reeditar
+        if(escopo === 'futuros'){
+            bd = bd.filter(x => !(x.repeticaoGrupo === grupo && x.data >= dataRef));
+            saveAll();
+            window._repeticaoGrupoAtual = grupo;
+            window._repeticaoDataRef    = dataRef;
+        } else {
+            window._repeticaoGrupoAtual = null;
+            window._repeticaoDataRef    = null;
+        }
+        _abrirEdicaoSimples(item, escopo === 'futuros', true);
+    }
+}
+
+function _abrirEdicaoSimples(i, isRepeticaoFuturos, mantemGrupoRep){
     window._recriarParcelasFuturas = false;
     document.getElementById('modal-titulo').innerText = 'Editar Transação';
-    document.getElementById('f-id').value   = i.id;
+    document.getElementById('f-id').value   = isRepeticaoFuturos ? '' : i.id;
     document.getElementById('f-tipo').value = i.tipo;
-    toggleTransferencia();
-    loadCats();
+    toggleTransferencia(); loadCats();
     loadContasSelect('f-conta', i.conta);
     loadContasSelect('f-conta-destino');
     document.getElementById('f-cat').value  = i.cat;
     document.getElementById('f-data').value = i.data;
-    document.getElementById('f-desc').value = i.desc;
+    document.getElementById('f-desc').value = i.desc.replace(/ \(\d+\/\d+\)/, '');
     document.getElementById('f-valor').value = fmt(i.valor).replace('R$','').trim();
     document.getElementById('f-valor').placeholder = 'R$ 0,00';
-    // Tags
     document.getElementById('f-tags').value = i.tags ? i.tags.join(', ') : '';
     atualizarTagsPreview();
-    // Comprovante
     removerComprovante();
     if(i.comprovante){
         _comprovanteBase64 = i.comprovante;
@@ -2536,21 +2641,12 @@ function editarLancamento(id){
     }
     const chk = document.getElementById('f-parcelado');
     chk.checked=false; chk.disabled=false;
-    const parcCampo = document.getElementById('f-parcelas');
-    parcCampo.value=''; parcCampo.disabled=false;
+    document.getElementById('f-parcelas').value='';
+    document.getElementById('f-parcelas').disabled=false;
     document.getElementById('f-repetir').checked=false;
     document.getElementById('repeticao-campo').style.display='none';
     toggleParcelado();
     document.getElementById('modalRegistro').style.display='flex';
-}
-
-function excluirLanc(id){
-    const item = bd.find(x => x.id === id); if(!item) return;
-    if(item.parcelaGrupo){
-        _abrirEscolhaParcelaAcao('excluir', id);
-        return;
-    }
-    if(confirm('Excluir este lançamento?')){ bd = bd.filter(i => i.id !== id); saveAll(); render(); }
 }
 
 // =====================================================
