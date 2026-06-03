@@ -449,11 +449,15 @@
         <!-- ABAS EXTRATO -->
         <div style="display:flex;gap:6px;margin-bottom:12px;background:var(--surface);border-radius:12px;padding:4px;">
             <button id="tab-extrato-btn" onclick="switchExtratoTab('extrato')"
-                style="flex:1;border:none;border-radius:8px;padding:8px;font-size:0.82rem;font-weight:700;cursor:pointer;background:var(--primary);color:white;transition:all 0.2s;">
-                📜 Extrato Detalhado
+                style="flex:1;border:none;border-radius:8px;padding:8px 4px;font-size:0.72rem;font-weight:700;cursor:pointer;background:var(--primary);color:white;transition:all 0.2s;">
+                📜 Mês
+            </button>
+            <button id="tab-item-btn" onclick="switchExtratoTab('item')"
+                style="flex:1;border:none;border-radius:8px;padding:8px 4px;font-size:0.72rem;font-weight:700;cursor:pointer;background:transparent;color:var(--muted);transition:all 0.2s;">
+                📦 Por Item
             </button>
             <button id="tab-beneficios-btn" onclick="switchExtratoTab('beneficios')"
-                style="flex:1;border:none;border-radius:8px;padding:8px;font-size:0.82rem;font-weight:700;cursor:pointer;background:transparent;color:var(--muted);transition:all 0.2s;">
+                style="flex:1;border:none;border-radius:8px;padding:8px 4px;font-size:0.72rem;font-weight:700;cursor:pointer;background:transparent;color:var(--muted);transition:all 0.2s;">
                 🎁 Benefícios
             </button>
         </div>
@@ -546,6 +550,26 @@
             <div id="lista-lancamentos"></div>
         </div>
         </div><!-- /painel-extrato-detalhado -->
+
+        <!-- PAINEL: EXTRATO POR ITEM -->
+        <div id="painel-extrato-item" style="display:none;">
+            <div class="card" style="padding-bottom:8px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                    <h3 style="margin:0;">📦 Extrato por Item</h3>
+                    <div style="display:flex;gap:6px;align-items:center;">
+                        <select id="item-filtro-tipo" onchange="renderExtratoItem()"
+                            style="font-size:0.75rem;border:1px solid var(--border);border-radius:8px;padding:4px 8px;background:var(--surface);color:var(--text);">
+                            <option value="">Todos</option>
+                            <option value="Despesa">Despesas</option>
+                            <option value="Receita">Receitas</option>
+                        </select>
+                    </div>
+                </div>
+                <input type="text" id="item-busca" placeholder="🔍 Buscar item..." oninput="renderExtratoItem()"
+                    style="margin-bottom:10px;font-size:0.82rem;">
+                <div id="lista-extrato-item"></div>
+            </div>
+        </div>
 
         <!-- PAINEL: BENEFÍCIOS (movido de Bens) -->
         <div id="painel-extrato-beneficios" style="display:none;">
@@ -1770,26 +1794,159 @@ function renderDashboard(ctx) {
 
 // ── 2. Extrato
 // =====================================================
-//  ABAS DO EXTRATO: Detalhado / Benefícios
+//  ABAS DO EXTRATO: Detalhado / Por Item / Benefícios
 // =====================================================
 function switchExtratoTab(tab){
-    const panelExt = document.getElementById('painel-extrato-detalhado');
-    const panelBen = document.getElementById('painel-extrato-beneficios');
-    const btnExt   = document.getElementById('tab-extrato-btn');
-    const btnBen   = document.getElementById('tab-beneficios-btn');
-    if(tab === 'extrato'){
-        panelExt.style.display = 'block';
-        panelBen.style.display = 'none';
-        btnExt.style.background = 'var(--primary)'; btnExt.style.color = 'white';
-        btnBen.style.background = 'transparent';    btnBen.style.color = 'var(--muted)';
+    const panelExt  = document.getElementById('painel-extrato-detalhado');
+    const panelItem = document.getElementById('painel-extrato-item');
+    const panelBen  = document.getElementById('painel-extrato-beneficios');
+    const btnExt    = document.getElementById('tab-extrato-btn');
+    const btnItem   = document.getElementById('tab-item-btn');
+    const btnBen    = document.getElementById('tab-beneficios-btn');
+
+    // Esconde tudo
+    [panelExt,panelItem,panelBen].forEach(p=>p.style.display='none');
+    [btnExt,btnItem,btnBen].forEach(b=>{ b.style.background='transparent'; b.style.color='var(--muted)'; });
+
+    if(tab==='extrato'){
+        panelExt.style.display='block';
+        btnExt.style.background='var(--primary)'; btnExt.style.color='white';
+    } else if(tab==='item'){
+        panelItem.style.display='block';
+        btnItem.style.background='var(--primary)'; btnItem.style.color='white';
+        renderExtratoItem();
     } else {
-        panelExt.style.display = 'none';
-        panelBen.style.display = 'block';
-        btnExt.style.background = 'transparent';    btnExt.style.color = 'var(--muted)';
-        btnBen.style.background = 'var(--primary)'; btnBen.style.color = 'white';
+        panelBen.style.display='block';
+        btnBen.style.background='var(--primary)'; btnBen.style.color='white';
         const pSel = document.getElementById('filtro-periodo')?.value || '';
         renderBeneficios(_calcularPeriodo(pSel));
     }
+}
+
+// =====================================================
+//  EXTRATO POR ITEM
+// =====================================================
+function renderExtratoItem(){
+    const busca     = (document.getElementById('item-busca')||{value:''}).value.toLowerCase();
+    const tipoFiltro = (document.getElementById('item-filtro-tipo')||{value:''}).value;
+    const el = document.getElementById('lista-extrato-item');
+    if(!el) return;
+
+    // Agrupa lançamentos por grupo (parcelaGrupo ou repeticaoGrupo) ou por id único
+    const grupos = {};
+    bd.filter(i => !BENS_LISTA.includes(i.cat)).forEach(i => {
+        const grupoKey = i.parcelaGrupo || i.repeticaoGrupo || `single_${i.id}`;
+        if(!grupos[grupoKey]) grupos[grupoKey] = [];
+        grupos[grupoKey].push(i);
+    });
+
+    // Monta lista de grupos ordenada pela data mais recente
+    let listaGrupos = Object.values(grupos).map(itens => {
+        const sorted = [...itens].sort((a,b)=>new Date(a.data)-new Date(b.data));
+        const primeiro = sorted[0];
+        const ultimo   = sorted[sorted.length-1];
+        const total    = itens.reduce((s,i)=>s+i.valor,0);
+        const descBase = primeiro.desc.replace(/ \(\d+\/\d+\)/,'').trim();
+        const isGrupo  = itens.length > 1;
+        const isSingle = !primeiro.parcelaGrupo && !primeiro.repeticaoGrupo;
+        return { itens, sorted, primeiro, ultimo, total, descBase, isGrupo, isSingle };
+    });
+
+    // Filtro tipo
+    if(tipoFiltro) listaGrupos = listaGrupos.filter(g => g.primeiro.tipo === tipoFiltro);
+
+    // Filtro busca
+    if(busca) listaGrupos = listaGrupos.filter(g =>
+        g.descBase.toLowerCase().includes(busca) ||
+        g.primeiro.cat.toLowerCase().includes(busca) ||
+        (g.primeiro.tags||[]).some(t=>t.toLowerCase().includes(busca))
+    );
+
+    // Ordena por data do último lançamento (mais recente primeiro)
+    listaGrupos.sort((a,b) => new Date(b.ultimo.data) - new Date(a.ultimo.data));
+
+    if(!listaGrupos.length){
+        el.innerHTML = '<p style="text-align:center;color:var(--muted);padding:20px;">Nenhum item encontrado.</p>';
+        return;
+    }
+
+    el.innerHTML = listaGrupos.map(g => {
+        const { itens, sorted, primeiro, ultimo, total, descBase, isGrupo, isSingle } = g;
+        const cor   = primeiro.tipo==='Receita' ? 'var(--success)' : 'var(--danger)';
+        const conta = contaNomeCompleto(primeiro.conta);
+        const tags  = (primeiro.tags||[]).map(t=>`<span style="background:var(--secondary);color:white;font-size:0.6rem;padding:1px 6px;border-radius:10px;">${t}</span>`).join('');
+
+        // Linha de período
+        let periodoInfo = '';
+        if(isGrupo){
+            const dIni = primeiro.data.split('-').reverse().join('/');
+            const dFim = ultimo.data.split('-').reverse().join('/');
+            const parcAtual = sorted.filter(i=>i.data<=new Date().toISOString().split('T')[0]).length;
+            periodoInfo = `<div style="font-size:0.7rem;color:var(--muted);margin-top:2px;">
+                ${dIni} → ${dFim} · ${itens.length} vezes · ${parcAtual}/${itens.length} realizadas
+            </div>`;
+        } else {
+            periodoInfo = `<div style="font-size:0.7rem;color:var(--muted);margin-top:2px;">${primeiro.data.split('-').reverse().join('/')}</div>`;
+        }
+
+        // Parcelas expandidas (recolhidas por padrão)
+        const grupoKey = primeiro.parcelaGrupo || primeiro.repeticaoGrupo || `single_${primeiro.id}`;
+        const parcelasHtml = isGrupo ? `
+            <div id="parcelas_${grupoKey}" style="display:none;margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">
+                ${sorted.map(i=>`
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px dashed var(--border);">
+                        <div>
+                            <div style="font-size:0.78rem;">${i.desc}</div>
+                            <div style="font-size:0.68rem;color:var(--muted);">${i.data.split('-').reverse().join('/')} · ${contaNomeCompleto(i.conta)}</div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <b style="font-size:0.82rem;color:${i.tipo==='Receita'?'var(--success)':'var(--danger)'};">${fmt(i.valor)}</b>
+                            <span onclick="editarLancamento(${i.id})" style="cursor:pointer;font-size:0.9rem;">✏️</span>
+                            <span onclick="excluirLanc(${i.id})" style="cursor:pointer;font-size:0.9rem;">❌</span>
+                        </div>
+                    </div>`).join('')}
+            </div>` : '';
+
+        const toggleBtn = isGrupo
+            ? `<span onclick="toggleParcelasItem('${grupoKey}')" id="toggle_${grupoKey}"
+                style="font-size:0.7rem;color:var(--secondary);cursor:pointer;font-weight:600;white-space:nowrap;">
+                ▼ ver ${itens.length} parcelas
+               </span>`
+            : '';
+
+        return `<div style="padding:12px 0;border-bottom:1px solid var(--border);">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                <div style="flex:1;min-width:0;">
+                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                        <b style="font-size:0.88rem;">${descBase}</b>
+                        ${conta ? `<span class="conta-chip" style="background:${contaCor(primeiro.conta)}22;color:${contaCor(primeiro.conta)};">${conta}</span>` : ''}
+                        ${tags}
+                    </div>
+                    <div style="font-size:0.72rem;color:var(--muted);">${primeiro.cat}</div>
+                    ${periodoInfo}
+                    ${toggleBtn}
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
+                    <b style="font-size:0.95rem;color:${cor};">${fmt(total)}</b>
+                    ${isGrupo ? `<span style="font-size:0.65rem;color:var(--muted);">${fmt(primeiro.valor)}/vez</span>` : ''}
+                    ${isSingle ? `<div style="display:flex;gap:6px;">
+                        <span onclick="editarLancamento(${primeiro.id})" style="cursor:pointer;">✏️</span>
+                        <span onclick="excluirLanc(${primeiro.id})" style="cursor:pointer;">❌</span>
+                    </div>` : ''}
+                </div>
+            </div>
+            ${parcelasHtml}
+        </div>`;
+    }).join('');
+}
+
+function toggleParcelasItem(grupoKey){
+    const div = document.getElementById(`parcelas_${grupoKey}`);
+    const btn = document.getElementById(`toggle_${grupoKey}`);
+    if(!div) return;
+    const open = div.style.display !== 'none';
+    div.style.display = open ? 'none' : 'block';
+    if(btn) btn.innerText = open ? `▼ ver parcelas` : `▲ recolher`;
 }
 
 // =====================================================
