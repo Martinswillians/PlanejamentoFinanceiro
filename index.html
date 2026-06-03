@@ -555,18 +555,27 @@
         <div id="painel-extrato-item" style="display:none;">
             <div class="card" style="padding-bottom:8px;">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                    <h3 style="margin:0;">📦 Extrato por Item</h3>
-                    <div style="display:flex;gap:6px;align-items:center;">
-                        <select id="item-filtro-tipo" onchange="renderExtratoItem()"
-                            style="font-size:0.75rem;border:1px solid var(--border);border-radius:8px;padding:4px 8px;background:var(--surface);color:var(--text);">
-                            <option value="">Todos</option>
-                            <option value="Despesa">Despesas</option>
-                            <option value="Receita">Receitas</option>
-                        </select>
+                    <h3 style="margin:0;">📦 Por Item</h3>
+                    <div style="display:flex;gap:6px;">
+                        <button onclick="exportarItemXLS()" style="background:#27ae60;color:white;border:none;border-radius:8px;padding:6px 10px;font-size:0.75rem;font-weight:700;cursor:pointer;">📊 XLS</button>
+                        <button onclick="exportarItemPDF()" style="background:#e74c3c;color:white;border:none;border-radius:8px;padding:6px 10px;font-size:0.75rem;font-weight:700;cursor:pointer;">📄 PDF</button>
                     </div>
                 </div>
                 <input type="text" id="item-busca" placeholder="🔍 Buscar item..." oninput="renderExtratoItem()"
-                    style="margin-bottom:10px;font-size:0.82rem;">
+                    style="width:100%;margin-bottom:8px;font-size:0.82rem;">
+                <div style="display:flex;gap:6px;margin-bottom:10px;">
+                    <select id="item-filtro-tipo" onchange="renderExtratoItem()"
+                        style="flex:1;font-size:0.75rem;border:1px solid var(--border);border-radius:8px;padding:4px 6px;background:var(--surface);color:var(--text);margin-bottom:0;">
+                        <option value="">Todos</option>
+                        <option value="Despesa">Despesas</option>
+                        <option value="Receita">Receitas</option>
+                    </select>
+                    <select id="item-ordem" onchange="renderExtratoItem()"
+                        style="flex:1;font-size:0.75rem;border:1px solid var(--border);border-radius:8px;padding:4px 6px;background:var(--surface);color:var(--text);margin-bottom:0;">
+                        <option value="data">📅 Data</option>
+                        <option value="alfa">🔤 A-Z</option>
+                    </select>
+                </div>
                 <div id="lista-extrato-item"></div>
             </div>
         </div>
@@ -1826,44 +1835,66 @@ function switchExtratoTab(tab){
 // =====================================================
 //  EXTRATO POR ITEM
 // =====================================================
+// =====================================================
+//  EXTRATO POR ITEM
+// =====================================================
 function renderExtratoItem(){
-    const busca     = (document.getElementById('item-busca')||{value:''}).value.toLowerCase();
+    const busca      = (document.getElementById('item-busca')||{value:''}).value.toLowerCase();
     const tipoFiltro = (document.getElementById('item-filtro-tipo')||{value:''}).value;
+    const ordemSel   = (document.getElementById('item-ordem')||{value:'data'}).value;
     const el = document.getElementById('lista-extrato-item');
     if(!el) return;
 
-    // Agrupa lançamentos por grupo (parcelaGrupo ou repeticaoGrupo) ou por id único
+    // ── Agrupa por: parcelaGrupo > repeticaoGrupo > recId > (desc+cat+conta) para recorrentes sem grupo > id único
     const grupos = {};
     bd.filter(i => !BENS_LISTA.includes(i.cat)).forEach(i => {
-        const grupoKey = i.parcelaGrupo || i.repeticaoGrupo || `single_${i.id}`;
+        let grupoKey;
+        if(i.parcelaGrupo)       grupoKey = 'pg_' + i.parcelaGrupo;
+        else if(i.repeticaoGrupo) grupoKey = 'rg_' + i.repeticaoGrupo;
+        else if(i.recId)          grupoKey = 'rc_' + i.recId;
+        else {
+            // Agrupa itens com mesmo desc+cat+conta que não têm grupo explícito
+            // (ex: recorrentes gerados antes da v31)
+            const normalDesc = i.desc.replace(/ \(\d+\/\d+\)/,'').trim().toLowerCase();
+            grupoKey = `desc_${normalDesc}_${i.cat}_${i.conta||''}`;
+        }
         if(!grupos[grupoKey]) grupos[grupoKey] = [];
         grupos[grupoKey].push(i);
     });
 
-    // Monta lista de grupos ordenada pela data mais recente
+    // Monta lista de grupos
     let listaGrupos = Object.values(grupos).map(itens => {
-        const sorted = [...itens].sort((a,b)=>new Date(a.data)-new Date(b.data));
+        const sorted   = [...itens].sort((a,b)=>new Date(a.data)-new Date(b.data));
         const primeiro = sorted[0];
         const ultimo   = sorted[sorted.length-1];
         const total    = itens.reduce((s,i)=>s+i.valor,0);
         const descBase = primeiro.desc.replace(/ \(\d+\/\d+\)/,'').trim();
         const isGrupo  = itens.length > 1;
-        const isSingle = !primeiro.parcelaGrupo && !primeiro.repeticaoGrupo;
-        return { itens, sorted, primeiro, ultimo, total, descBase, isGrupo, isSingle };
+        const isSingle = itens.length === 1 && !primeiro.parcelaGrupo && !primeiro.repeticaoGrupo && !primeiro.recId;
+        const grupoKey = primeiro.parcelaGrupo
+            ? 'pg_'+primeiro.parcelaGrupo
+            : primeiro.repeticaoGrupo
+                ? 'rg_'+primeiro.repeticaoGrupo
+                : primeiro.recId
+                    ? 'rc_'+primeiro.recId
+                    : `desc_${descBase.toLowerCase()}_${primeiro.cat}_${primeiro.conta||''}`;
+        return { itens, sorted, primeiro, ultimo, total, descBase, isGrupo, isSingle, grupoKey };
     });
 
-    // Filtro tipo
+    // Filtros
     if(tipoFiltro) listaGrupos = listaGrupos.filter(g => g.primeiro.tipo === tipoFiltro);
-
-    // Filtro busca
     if(busca) listaGrupos = listaGrupos.filter(g =>
         g.descBase.toLowerCase().includes(busca) ||
         g.primeiro.cat.toLowerCase().includes(busca) ||
         (g.primeiro.tags||[]).some(t=>t.toLowerCase().includes(busca))
     );
 
-    // Ordena por data do último lançamento (mais recente primeiro)
-    listaGrupos.sort((a,b) => new Date(b.ultimo.data) - new Date(a.ultimo.data));
+    // Ordenação
+    if(ordemSel === 'alfa'){
+        listaGrupos.sort((a,b) => a.descBase.localeCompare(b.descBase, 'pt-BR'));
+    } else {
+        listaGrupos.sort((a,b) => new Date(b.ultimo.data) - new Date(a.ultimo.data));
+    }
 
     if(!listaGrupos.length){
         el.innerHTML = '<p style="text-align:center;color:var(--muted);padding:20px;">Nenhum item encontrado.</p>';
@@ -1871,28 +1902,28 @@ function renderExtratoItem(){
     }
 
     el.innerHTML = listaGrupos.map(g => {
-        const { itens, sorted, primeiro, ultimo, total, descBase, isGrupo, isSingle } = g;
+        const { itens, sorted, primeiro, ultimo, total, descBase, isGrupo, isSingle, grupoKey } = g;
         const cor   = primeiro.tipo==='Receita' ? 'var(--success)' : 'var(--danger)';
         const conta = contaNomeCompleto(primeiro.conta);
         const tags  = (primeiro.tags||[]).map(t=>`<span style="background:var(--secondary);color:white;font-size:0.6rem;padding:1px 6px;border-radius:10px;">${t}</span>`).join('');
 
-        // Linha de período
         let periodoInfo = '';
         if(isGrupo){
             const dIni = primeiro.data.split('-').reverse().join('/');
             const dFim = ultimo.data.split('-').reverse().join('/');
-            const parcAtual = sorted.filter(i=>i.data<=new Date().toISOString().split('T')[0]).length;
+            const hoje = new Date().toISOString().split('T')[0];
+            const realizadas = sorted.filter(i=>i.data<=hoje).length;
             periodoInfo = `<div style="font-size:0.7rem;color:var(--muted);margin-top:2px;">
-                ${dIni} → ${dFim} · ${itens.length} vezes · ${parcAtual}/${itens.length} realizadas
+                ${dIni} → ${dFim} · ${itens.length} vezes · ${realizadas}/${itens.length} realizadas
             </div>`;
         } else {
             periodoInfo = `<div style="font-size:0.7rem;color:var(--muted);margin-top:2px;">${primeiro.data.split('-').reverse().join('/')}</div>`;
         }
 
-        // Parcelas expandidas (recolhidas por padrão)
-        const grupoKey = primeiro.parcelaGrupo || primeiro.repeticaoGrupo || `single_${primeiro.id}`;
+        const safeKey = grupoKey.replace(/[^a-zA-Z0-9_]/g,'_');
+
         const parcelasHtml = isGrupo ? `
-            <div id="parcelas_${grupoKey}" style="display:none;margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">
+            <div id="parcelas_${safeKey}" style="display:none;margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">
                 ${sorted.map(i=>`
                     <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px dashed var(--border);">
                         <div>
@@ -1908,7 +1939,7 @@ function renderExtratoItem(){
             </div>` : '';
 
         const toggleBtn = isGrupo
-            ? `<span onclick="toggleParcelasItem('${grupoKey}')" id="toggle_${grupoKey}"
+            ? `<span onclick="toggleParcelasItem('${safeKey}')" id="toggle_${safeKey}"
                 style="font-size:0.7rem;color:var(--secondary);cursor:pointer;font-weight:600;white-space:nowrap;">
                 ▼ ver ${itens.length} parcelas
                </span>`
@@ -1940,13 +1971,127 @@ function renderExtratoItem(){
     }).join('');
 }
 
-function toggleParcelasItem(grupoKey){
-    const div = document.getElementById(`parcelas_${grupoKey}`);
-    const btn = document.getElementById(`toggle_${grupoKey}`);
+function toggleParcelasItem(safeKey){
+    const div = document.getElementById(`parcelas_${safeKey}`);
+    const btn = document.getElementById(`toggle_${safeKey}`);
     if(!div) return;
     const open = div.style.display !== 'none';
     div.style.display = open ? 'none' : 'block';
     if(btn) btn.innerText = open ? `▼ ver parcelas` : `▲ recolher`;
+}
+
+function exportarItemXLS(){
+    const busca      = (document.getElementById('item-busca')||{value:''}).value.toLowerCase();
+    const tipoFiltro = (document.getElementById('item-filtro-tipo')||{value:''}).value;
+    const BOM = '\uFEFF';
+    const header = ['Item','Categoria','Conta','Tipo','Nº Ocorrências','Valor Unitário (R$)','Total (R$)','Primeira Data','Última Data'];
+
+    const grupos = {};
+    bd.filter(i=>!BENS_LISTA.includes(i.cat)).forEach(i=>{
+        let k;
+        if(i.parcelaGrupo) k='pg_'+i.parcelaGrupo;
+        else if(i.repeticaoGrupo) k='rg_'+i.repeticaoGrupo;
+        else if(i.recId) k='rc_'+i.recId;
+        else k=`desc_${i.desc.replace(/ \(\d+\/\d+\)/,'').trim().toLowerCase()}_${i.cat}_${i.conta||''}`;
+        if(!grupos[k]) grupos[k]=[];
+        grupos[k].push(i);
+    });
+
+    let linhas = Object.values(grupos)
+        .filter(itens=>!tipoFiltro||itens[0].tipo===tipoFiltro)
+        .filter(itens=>{
+            if(!busca) return true;
+            const d=itens[0].desc.replace(/ \(\d+\/\d+\)/,'').trim().toLowerCase();
+            return d.includes(busca)||itens[0].cat.toLowerCase().includes(busca)||(itens[0].tags||[]).some(t=>t.toLowerCase().includes(busca));
+        })
+        .map(itens=>{
+            const sorted=[...itens].sort((a,b)=>new Date(a.data)-new Date(b.data));
+            const d=sorted[0].desc.replace(/ \(\d+\/\d+\)/,'').trim();
+            const total=itens.reduce((s,i)=>s+i.valor,0);
+            return [
+                `"${d}"`,sorted[0].cat,contaNome(sorted[0].conta),sorted[0].tipo,
+                itens.length,
+                sorted[0].valor.toFixed(2).replace('.',','),
+                total.toFixed(2).replace('.',','),
+                sorted[0].data.split('-').reverse().join('/'),
+                sorted[sorted.length-1].data.split('-').reverse().join('/')
+            ].join(';');
+        });
+
+    const csv = BOM + header.join(';') + '\n' + linhas.join('\n');
+    const blob = new Blob([csv],{type:'text/csv;charset=utf-8'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href=url; a.download=`extrato_por_item_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    mostrarToast('📊 Exportado para Excel!','success',3500);
+}
+
+function exportarItemPDF(){
+    const busca      = (document.getElementById('item-busca')||{value:''}).value.toLowerCase();
+    const tipoFiltro = (document.getElementById('item-filtro-tipo')||{value:''}).value;
+
+    const grupos = {};
+    bd.filter(i=>!BENS_LISTA.includes(i.cat)).forEach(i=>{
+        let k;
+        if(i.parcelaGrupo) k='pg_'+i.parcelaGrupo;
+        else if(i.repeticaoGrupo) k='rg_'+i.repeticaoGrupo;
+        else if(i.recId) k='rc_'+i.recId;
+        else k=`desc_${i.desc.replace(/ \(\d+\/\d+\)/,'').trim().toLowerCase()}_${i.cat}_${i.conta||''}`;
+        if(!grupos[k]) grupos[k]=[];
+        grupos[k].push(i);
+    });
+
+    const linhas = Object.values(grupos)
+        .filter(itens=>!tipoFiltro||itens[0].tipo===tipoFiltro)
+        .filter(itens=>{
+            if(!busca) return true;
+            const d=itens[0].desc.replace(/ \(\d+\/\d+\)/,'').trim().toLowerCase();
+            return d.includes(busca)||itens[0].cat.toLowerCase().includes(busca)||(itens[0].tags||[]).some(t=>t.toLowerCase().includes(busca));
+        })
+        .sort((a,b)=>new Date(b[b.length-1].data)-new Date(a[a.length-1].data))
+        .map(itens=>{
+            const sorted=[...itens].sort((a,b)=>new Date(a.data)-new Date(b.data));
+            const d=sorted[0].desc.replace(/ \(\d+\/\d+\)/,'').trim();
+            const total=itens.reduce((s,i)=>s+i.valor,0);
+            const cor=sorted[0].tipo==='Receita'?'#27ae60':'#e74c3c';
+            const periodo=itens.length>1
+                ?`${sorted[0].data.split('-').reverse().join('/')} → ${sorted[sorted.length-1].data.split('-').reverse().join('/')} · ${itens.length}×`
+                :sorted[0].data.split('-').reverse().join('/');
+            return `<tr>
+                <td><b>${d}</b><br><small style="color:#888">${sorted[0].cat}</small></td>
+                <td>${contaNome(sorted[0].conta)}</td>
+                <td>${sorted[0].tipo}</td>
+                <td style="text-align:center">${itens.length}</td>
+                <td style="text-align:right;color:#888">${itens.length>1?fmt(sorted[0].valor):''}</td>
+                <td style="text-align:right;color:${cor};font-weight:bold">${fmt(total)}</td>
+                <td style="font-size:11px;color:#888">${periodo}</td>
+            </tr>`;
+        }).join('');
+
+    const html=`<!DOCTYPE html><html lang="pt-br"><head><meta charset="UTF-8">
+        <title>Extrato por Item</title>
+        <style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px;}
+        h2{color:#2c3e50;}table{width:100%;border-collapse:collapse;}
+        th{background:#2c3e50;color:white;padding:7px 8px;text-align:left;font-size:11px;}
+        td{padding:6px 8px;border-bottom:1px solid #eee;font-size:11px;}
+        tr:nth-child(even){background:#f9f9f9;}
+        @media print{button{display:none;}}</style>
+    </head><body>
+        <h2>💰 Financeiro Pro — Extrato por Item</h2>
+        <p style="color:#888;font-size:11px;">Gerado em: ${new Date().toLocaleString('pt-BR')}</p>
+        <table><thead><tr>
+            <th>Item</th><th>Conta</th><th>Tipo</th><th>Ocorr.</th><th>Valor Unit.</th><th>Total</th><th>Período</th>
+        </tr></thead><tbody>${linhas}</tbody></table>
+        <button onclick="window.print()" style="margin-top:20px;padding:10px 20px;background:#2c3e50;color:white;border:none;border-radius:8px;cursor:pointer;">
+            🖨️ Imprimir / Salvar PDF
+        </button>
+    </body></html>`;
+
+    const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    window.open(url,'_blank');
+    mostrarToast('📄 PDF aberto — use Ctrl+P para salvar.','success',5000);
 }
 
 // =====================================================
