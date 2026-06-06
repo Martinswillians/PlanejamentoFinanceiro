@@ -317,6 +317,7 @@
         <button class="notif-bell" id="btn-notif" onclick="toggleNotifPanel()" title="Notificações">🔔<span class="notif-badge" id="notif-count" style="display:none;">0</span></button>
         <span id="visitor-badge" style="display:none;background:#e67e22;color:white;font-size:0.58rem;font-weight:800;padding:2px 7px;border-radius:10px;letter-spacing:0.5px;">VISITANTE</span>
         <button onclick="toggleDark()" id="btn-dark" style="background:none;border:none;color:white;font-size:1.1rem;cursor:pointer;" title="Tema">🌙</button>
+        <button onclick="showPage('ajuda',null)" title="Ajuda / Manual" style="background:none;border:none;color:white;font-size:1.1rem;cursor:pointer;">❓</button>
         <div class="user-avatar" id="user-avatar" onclick="toggleUserMenu()" title="Perfil"></div>
     </div>
 </div>
@@ -729,6 +730,22 @@
         </div>
     </div>
 
+    <!-- ===== AJUDA / MANUAL ===== -->
+    <div id="page-ajuda" class="page">
+        <div class="card">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                <span style="font-size:1.8rem;">📖</span>
+                <div>
+                    <h3 style="margin:0;">Manual do Financeiro Pro</h3>
+                    <div style="font-size:0.75rem;color:var(--muted);">Toque em qualquer tópico para expandir</div>
+                </div>
+            </div>
+            <input type="text" id="ajuda-busca" placeholder="🔍 Pesquisar no manual..."
+                oninput="filtrarAjuda()" style="margin-bottom:14px;font-size:0.85rem;">
+            <div id="ajuda-lista"></div>
+        </div>
+    </div>
+
 </div><!-- /main-container -->
 
 <!-- ===== NAVEGAÇÃO ===== -->
@@ -1131,6 +1148,10 @@ function showPage(p, el){
         case 'beneficios':    renderBeneficios(ctx); break;
         case 'recorrentes':   renderContas(); renderRecorrentes(); renderParcelasAtivas(); break;
         case 'config':        renderConfig(); break;
+        case 'ajuda':
+            renderAjuda(AJUDA_TOPICOS);
+            document.getElementById('ajuda-busca').value = '';
+            break;
         default:              render();
     }
 }
@@ -4062,6 +4083,279 @@ function sincFiltroAnoMes(){
     selH.innerHTML = `<option value="${periodo}">${periodo}</option>`;
     selH.value = periodo;
     render();
+}
+
+// =====================================================
+//  MANUAL / AJUDA
+// =====================================================
+const AJUDA_TOPICOS = [
+    {
+        icone:'📊', titulo:'Dashboard',
+        tags:['dash','início','resumo','receita','despesa','saldo','economia','previsão','gráfico'],
+        conteudo:`
+<p>O <b>Dashboard</b> é a tela inicial e mostra um resumo completo do mês selecionado.</p>
+<ul>
+<li><b>Receita / Despesa / Saldo</b> — valores totais do mês (excluindo benefícios)</li>
+<li><b>Economia %</b> — percentual do que sobrou da receita</li>
+<li><b>Investimentos do Mês</b> — total aportado e rentabilidade</li>
+<li><b>Previsão para o fim do mês</b> — projeção baseada no gasto médio diário até hoje</li>
+<li><b>Gastos por Categoria</b> — gráfico de pizza; clique nas abas para ver por <b>Categoria</b> ou <b>Multi-Contas</b></li>
+<li><b>Evolução Anual</b> — gráfico de linha comparando receitas e despesas mês a mês</li>
+</ul>
+<p>💡 <b>Dica:</b> Use os seletores <b>MÊS</b> e <b>ANO</b> no header para navegar entre períodos.</p>`
+    },
+    {
+        icone:'➕', titulo:'Novo Lançamento',
+        tags:['lançamento','novo','despesa','receita','transferência','parcelado','repetir','tag','comprovante','parcelas'],
+        conteudo:`
+<p>Toque no botão <b>verde +</b> em qualquer tela para adicionar um novo lançamento.</p>
+<h4>Tipos disponíveis:</h4>
+<ul>
+<li><b>Despesa</b> — gasto comum</li>
+<li><b>Receita</b> — entrada de dinheiro</li>
+<li><b>↔️ Transferência entre contas</b> — move saldo de uma conta para outra automaticamente</li>
+</ul>
+<h4>Campos:</h4>
+<ul>
+<li><b>Conta</b> — selecione qual conta está sendo usada</li>
+<li><b>Data</b> — data do lançamento</li>
+<li><b>Categoria</b> — classifique o gasto/receita; toque em <b>➕ Nova categoria...</b> para criar uma nova sem sair da tela</li>
+<li><b>Descrição</b> — nome do item</li>
+<li><b>Valor</b> — valor do lançamento</li>
+<li><b>🏷️ Tags</b> — palavras-chave separadas por vírgula (ex: viagem, família). Usadas na busca do extrato</li>
+<li><b>📎 Comprovante</b> — anexe uma foto ou PDF do recibo</li>
+</ul>
+<h4>Parcelamento:</h4>
+<p>Marque <b>Parcelado</b> e informe o número de parcelas. O sistema gera automaticamente um lançamento para cada mês, numerados como (1/10), (2/10), etc.</p>
+<h4>Repetição personalizada:</h4>
+<p>Marque <b>Repetir</b> para criar uma série com frequência <b>Semanal</b>, <b>Quinzenal</b>, <b>Mensal</b> ou <b>Anual</b>, definindo quantas vezes deve repetir.</p>`
+    },
+    {
+        icone:'📜', titulo:'Extrato — Aba Mês',
+        tags:['extrato','mês','busca','filtro','conta','categoria','totais','xls','pdf','exportar'],
+        conteudo:`
+<p>A aba <b>📜 Mês</b> mostra todos os lançamentos do período selecionado (exceto benefícios).</p>
+<h4>Filtros disponíveis:</h4>
+<ul>
+<li><b>Busca livre</b> — pesquisa por descrição, categoria ou <b>tag</b></li>
+<li><b>🎛️ Filtros</b> — painel expandível com filtros de <b>Tipo</b> (Receita/Despesa), <b>Contas</b> e <b>Categorias</b> (multi-seleção)</li>
+<li>Chips coloridos mostram os filtros ativos; clique no ✕ da busca para limpar</li>
+</ul>
+<h4>Totalizador:</h4>
+<p>Exibe <b>Receitas | Despesas | Saldo</b> filtrados em tempo real. O rodapé mostra o total geral (receitas + despesas) com aviso de que engloba ambos.</p>
+<h4>Exportação:</h4>
+<ul>
+<li><b>📊 XLS</b> — gera arquivo CSV compatível com Excel, com os dados filtrados</li>
+<li><b>📄 PDF</b> — abre nova aba com relatório formatado para impressão</li>
+</ul>
+<p>💡 <b>Dica:</b> Para editar ou excluir um lançamento, toque em ✏️ ou ❌ ao lado do item.</p>`
+    },
+    {
+        icone:'📦', titulo:'Extrato — Aba Por Item',
+        tags:['por item','agrupado','parcelas','série','ver parcelas','recolher','ordenar','alfabético','data'],
+        conteudo:`
+<p>A aba <b>📦 Por Item</b> mostra todos os lançamentos agrupados, independente do mês.</p>
+<h4>Como funciona o agrupamento:</h4>
+<ul>
+<li>Parcelamentos (ex: Iphone 10×) aparecem como um único card com o <b>total</b> e o <b>valor por parcela</b></li>
+<li>Repetições e recorrentes também são agrupados</li>
+<li>Clique em <b>▼ ver X parcelas</b> para expandir e editar/excluir individualmente</li>
+</ul>
+<h4>Filtros e ordenação:</h4>
+<ul>
+<li><b>Busca</b> — por nome, categoria ou tag</li>
+<li><b>Tipo</b> — Todos / Despesas / Receitas</li>
+<li><b>Ordenação</b> — por <b>📅 Data</b> (mais recente primeiro) ou <b>🔤 A-Z</b> (alfabético)</li>
+</ul>
+<h4>Exportação:</h4>
+<p>Botões <b>📊 XLS</b> e <b>📄 PDF</b> exportam a visão consolidada por item.</p>`
+    },
+    {
+        icone:'🎁', titulo:'Extrato — Aba Benefícios',
+        tags:['benefícios','ticket','alimentação','refeição','cartão benefícios','vale'],
+        conteudo:`
+<p>A aba <b>🎁 Benefícios</b> mostra exclusivamente os lançamentos das categorias:</p>
+<ul>
+<li>Ticket Alimentação</li>
+<li>Ticket Refeição</li>
+<li>Cartão Benefícios</li>
+</ul>
+<p>Esses itens <b>não aparecem</b> no Extrato Detalhado nem nos totalizadores de Receita/Despesa, pois são benefícios e não afetam diretamente o orçamento pessoal.</p>
+<h4>Saldos:</h4>
+<p>No topo da aba, cards mostram o saldo disponível de cada benefício no mês selecionado (entradas menos saídas da categoria).</p>`
+    },
+    {
+        icone:'🎯', titulo:'Metas',
+        tags:['metas','limite','categoria','orçamento','acumulado','anual','detalhamento'],
+        conteudo:`
+<p>A tela de <b>Metas</b> permite controlar o orçamento por categoria.</p>
+<h4>Aba Despesas:</h4>
+<ul>
+<li>Defina um <b>limite mensal</b> por categoria (ex: Moradia até R$ 3.000)</li>
+<li>A barra de progresso fica <b>vermelha</b> quando ultrapassa 80% do limite</li>
+<li>Toque em <b>+ Meta</b> para adicionar ou em ✏️/❌ para editar/remover</li>
+</ul>
+<h4>Acumulado do Ano:</h4>
+<p>Clique em qualquer categoria para ver o detalhamento completo:</p>
+<ul>
+<li><b>Total por despesa</b> — agrupa itens parcelados (ex: Purificador 6× R$ 80 = R$ 480)</li>
+<li><b>Detalhamento mensal</b> — subtotal por mês com todos os lançamentos</li>
+</ul>`
+    },
+    {
+        icone:'💼', titulo:'Investimentos',
+        tags:['investimentos','aportes','rentabilidade','metas','patrimônio'],
+        conteudo:`
+<p>A tela de <b>Investimentos</b> registra e acompanha seus aportes.</p>
+<ul>
+<li><b>Aportado no mês</b> — total investido no período selecionado</li>
+<li><b>Rentabilidade</b> — percentual de rendimento informado</li>
+<li>Metas de investimento com barra de progresso para acompanhar seu patrimônio</li>
+</ul>
+<p>💡 <b>Dica:</b> Registre seus investimentos mensalmente para ter uma visão clara da evolução patrimonial no gráfico anual do Dashboard.</p>`
+    },
+    {
+        icone:'🔁', titulo:'Fixas (Recorrentes)',
+        tags:['fixas','recorrentes','automático','contas fixas','mensal','gerar'],
+        conteudo:`
+<p>A tela de <b>Fixas</b> gerencia despesas e receitas que se repetem todo mês.</p>
+<ul>
+<li>Cadastre uma vez e o sistema sugere o lançamento automaticamente cada mês</li>
+<li>Toque em <b>Gerar</b> para confirmar um lançamento recorrente no mês atual</li>
+<li>Um alerta no sino aparece quando há recorrentes pendentes de lançamento</li>
+</ul>
+<p>💡 <b>Diferença entre Fixas e Repetição:</b> Fixas são templates que você confirma mês a mês. Repetição (no lançamento) cria todos os registros de uma vez.</p>`
+    },
+    {
+        icone:'🏦', titulo:'Multi-Contas',
+        tags:['contas','banco','cartão','corrente','poupança','débito','crypto','transferência'],
+        conteudo:`
+<p>Gerencie todas as suas contas em <b>Configurações → Gestão Multi-Contas</b>.</p>
+<h4>Tipos de conta disponíveis:</h4>
+<p>C. Corrente · C. Poupança · Cartão de Crédito · Cartão de Débito · Carteira · Investimento · Crypto</p>
+<h4>Dica sobre nomes iguais:</h4>
+<p>Se duas contas tiverem o mesmo nome (ex: dois Nubanks), o sistema automaticamente mostra o tipo entre parênteses: <b>Nubank (C. Corrente)</b> e <b>Nubank (Cartão de Crédito)</b>.</p>
+<h4>Transferência entre contas:</h4>
+<p>No lançamento, selecione o tipo <b>↔️ Transferência entre contas</b>. O sistema cria automaticamente uma saída na conta de origem e uma entrada na conta de destino.</p>`
+    },
+    {
+        icone:'🏷️', titulo:'Categorias',
+        tags:['categorias','nova categoria','receita','despesa','gerenciar'],
+        conteudo:`
+<p>Gerencie categorias em <b>Configurações → Gestão de Categorias</b>.</p>
+<ul>
+<li>Categorias separadas por <b>Receita</b> e <b>Despesa</b></li>
+<li>Para criar uma nova categoria <b>durante</b> um lançamento, selecione <b>➕ Nova categoria...</b> no select de categoria</li>
+<li>A nova categoria é salva automaticamente e fica disponível em toda a aplicação</li>
+</ul>
+<p>⚠️ <b>Atenção:</b> As categorias <b>Ticket Alimentação</b>, <b>Ticket Refeição</b> e <b>Cartão Benefícios</b> são especiais — ficam na aba Benefícios e não aparecem no extrato comum.</p>`
+    },
+    {
+        icone:'🔐', titulo:'Login e Perfil',
+        tags:['login','cadastro','senha','recuperar','foto','perfil','visitante'],
+        conteudo:`
+<h4>Acesso:</h4>
+<ul>
+<li><b>Login normal</b> — e-mail e senha cadastrados</li>
+<li><b>👀 Visitante</b> — acesso sem cadastro; os dados não são salvos ao sair</li>
+<li><b>Esqueceu a senha?</b> — informe o e-mail, receba um código de 6 dígitos (válido 10 min), insira o código e defina nova senha</li>
+</ul>
+<h4>Foto de perfil:</h4>
+<p>Toque no avatar (círculo com sua inicial) → <b>Editar Perfil</b> → toque na foto para selecionar uma imagem do dispositivo. A foto fica salva localmente.</p>
+<h4>Múltiplos usuários:</h4>
+<p>O sistema suporta múltiplos cadastros. Cada usuário tem seus próprios dados completamente isolados.</p>`
+    },
+    {
+        icone:'💾', titulo:'Backup e Exportação',
+        tags:['backup','exportar','importar','json','csv','pdf','restaurar','dados'],
+        conteudo:`
+<p>Acesse em <b>Configurações → Sistema</b>.</p>
+<ul>
+<li><b>📦 Exportar Backup JSON</b> — salva todos os dados em arquivo JSON para restauração futura</li>
+<li><b>📊 Exportar CSV (Excel)</b> — exporta os lançamentos em formato compatível com Excel</li>
+<li><b>📄 Exportar Resumo PDF</b> — relatório formatado para impressão/arquivamento</li>
+<li><b>📥 Importar Backup</b> — restaura dados a partir de um backup JSON exportado anteriormente</li>
+</ul>
+<p>💡 <b>Recomendação:</b> Faça backup mensalmente. Os dados ficam salvos no <b>localStorage</b> do navegador — limpar o cache do browser apaga os dados.</p>`
+    },
+    {
+        icone:'🌙', titulo:'Tema Claro / Escuro',
+        tags:['tema','escuro','claro','dark','modo'],
+        conteudo:`
+<p>Toque no ícone <b>🌙 / ☀️</b> no header para alternar entre tema claro e escuro.</p>
+<p>A preferência é salva automaticamente e mantida entre sessões.</p>`
+    },
+    {
+        icone:'🔔', titulo:'Notificações e Alertas',
+        tags:['notificações','alertas','sino','badge','avisos'],
+        conteudo:`
+<p>O sino 🔔 no header exibe avisos importantes:</p>
+<ul>
+<li><b>Metas estourando</b> — quando o gasto ultrapassa 80% do limite definido</li>
+<li><b>Recorrentes pendentes</b> — despesas/receitas fixas ainda não lançadas no mês</li>
+<li><b>Saldo negativo</b> — quando despesas superam receitas</li>
+</ul>
+<p>Os alertas aparecem como <b>toasts</b> (mensagens flutuantes) apenas no <b>primeiro acesso</b> do dia. Nas navegações seguintes, apenas o número no badge é atualizado.</p>
+<p>Clique no sino para ver a lista completa de notificações pendentes.</p>`
+    },
+    {
+        icone:'📱', titulo:'Uso Mobile / PWA',
+        tags:['mobile','celular','pwa','app','instalar','ios','android','safari','chrome'],
+        conteudo:`
+<p>O Financeiro Pro foi projetado para uso no celular.</p>
+<h4>Instalar como app (PWA):</h4>
+<ol>
+<li>Acesse pelo <b>Chrome</b> no Android ou <b>Safari</b> no iPhone</li>
+<li>Toque no menu do navegador</li>
+<li>Selecione <b>"Adicionar à tela inicial"</b></li>
+<li>O app aparece na tela inicial como um ícone nativo</li>
+</ol>
+<h4>Funciona offline:</h4>
+<p>Todos os dados ficam no dispositivo. Não é necessária conexão com internet para usar o app após instalado.</p>
+<p>⚠️ <b>Importante:</b> Os dados ficam no armazenamento local do navegador. Se trocar de dispositivo ou limpar o cache, faça backup antes.</p>`
+    }
+];
+
+function renderAjuda(topicos){
+    const el = document.getElementById('ajuda-lista');
+    if(!el) return;
+    el.innerHTML = topicos.map((t,idx) => `
+        <div style="border:1px solid var(--border);border-radius:12px;margin-bottom:8px;overflow:hidden;">
+            <button onclick="toggleAjudaTopico(${idx})"
+                style="width:100%;display:flex;align-items:center;gap:10px;padding:12px 14px;
+                       background:var(--surface);border:none;cursor:pointer;text-align:left;">
+                <span style="font-size:1.3rem;flex-shrink:0;">${t.icone}</span>
+                <span style="flex:1;font-weight:700;font-size:0.88rem;color:var(--text);">${t.titulo}</span>
+                <span id="ajuda-arrow-${idx}" style="color:var(--muted);font-size:0.8rem;transition:transform 0.2s;">▼</span>
+            </button>
+            <div id="ajuda-conteudo-${idx}" style="display:none;padding:0 14px 14px;font-size:0.82rem;line-height:1.65;color:var(--text);">
+                <div style="border-top:1px solid var(--border);padding-top:12px;">${t.conteudo}</div>
+            </div>
+        </div>`).join('');
+}
+
+function toggleAjudaTopico(idx){
+    const el  = document.getElementById(`ajuda-conteudo-${idx}`);
+    const arr = document.getElementById(`ajuda-arrow-${idx}`);
+    if(!el) return;
+    const open = el.style.display !== 'none';
+    el.style.display = open ? 'none' : 'block';
+    if(arr) arr.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+function filtrarAjuda(){
+    const q = (document.getElementById('ajuda-busca').value||'').toLowerCase().trim();
+    if(!q){ renderAjuda(AJUDA_TOPICOS); return; }
+    const filtrados = AJUDA_TOPICOS.filter(t =>
+        t.titulo.toLowerCase().includes(q) ||
+        t.tags.some(tag => tag.includes(q)) ||
+        t.conteudo.toLowerCase().includes(q)
+    );
+    renderAjuda(filtrados);
+    // Auto-abre se só um resultado
+    if(filtrados.length === 1){
+        setTimeout(()=>toggleAjudaTopico(0), 50);
+    }
 }
 
 // =====================================================
