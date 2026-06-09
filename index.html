@@ -504,6 +504,18 @@
                         </label>
                     </div>
                 </div>
+                <!-- Filtro status pagamento -->
+                <div style="margin-bottom:10px;">
+                    <div style="font-size:0.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Status</div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.82rem;background:var(--card-bg);border:1px solid var(--border);border-radius:20px;padding:4px 10px;">
+                            <input type="checkbox" class="fext-status" value="pago" onchange="render()" style="width:auto;margin:0;"> ✅ Pago
+                        </label>
+                        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.82rem;background:var(--card-bg);border:1px solid var(--border);border-radius:20px;padding:4px 10px;">
+                            <input type="checkbox" class="fext-status" value="pendente" onchange="render()" style="width:auto;margin:0;"> ⏳ Pendente
+                        </label>
+                    </div>
+                </div>
                 <!-- Filtro contas -->
                 <div style="margin-bottom:10px;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
@@ -2293,26 +2305,33 @@ function toggleTodosExt(cls){
 
 function limparFiltrosExt(){
     document.getElementById('busca-lanc').value = '';
-    document.querySelectorAll('.fext-tipo,.fext-conta,.fext-cat').forEach(el => el.checked = false);
+    document.querySelectorAll('.fext-tipo,.fext-conta,.fext-cat,.fext-status').forEach(el => el.checked = false);
     render();
 }
 
-function _atualizarChipsFiltros(busca, contas_sel, cats_sel, tipos_sel){
+function togglePago(id){
+    const i = bd.find(x => x.id === id); if(!i) return;
+    i.pago = !i.pago;
+    saveAll(); render();
+    mostrarToast(i.pago ? '✅ Marcado como pago!' : '⏳ Marcado como pendente!', 'info', 2000);
+}
+
+function _atualizarChipsFiltros(busca, contas_sel, cats_sel, tipos_sel, status_sel){
+    status_sel = status_sel || [];
     const el = document.getElementById('fext-chips');
     if(!el) return;
     const chips = [];
     if(busca) chips.push(`<span style="background:var(--secondary);color:white;border-radius:20px;padding:3px 10px;font-size:0.72rem;cursor:pointer;" onclick="document.getElementById('busca-lanc').value='';render()">🔍 "${busca}" ✕</span>`);
     tipos_sel.forEach(t => chips.push(`<span style="background:#9b59b6;color:white;border-radius:20px;padding:3px 10px;font-size:0.72rem;">${t}</span>`));
-    if(contas_sel.length > 0)
-        chips.push(`<span style="background:var(--primary);color:white;border-radius:20px;padding:3px 10px;font-size:0.72rem;">${contas_sel.length} conta${contas_sel.length!==1?'s':''}</span>`);
-    if(cats_sel.length > 0)
-        chips.push(`<span style="background:var(--success);color:white;border-radius:20px;padding:3px 10px;font-size:0.72rem;">${cats_sel.length} categoria${cats_sel.length!==1?'s':''}</span>`);
+    status_sel.forEach(s => chips.push(`<span style="background:${s==='pago'?'#27ae60':'#f39c12'};color:white;border-radius:20px;padding:3px 10px;font-size:0.72rem;">${s==='pago'?'✅ Pago':'⏳ Pendente'}</span>`));
+    if(contas_sel.length > 0) chips.push(`<span style="background:var(--primary);color:white;border-radius:20px;padding:3px 10px;font-size:0.72rem;">${contas_sel.length} conta${contas_sel.length!==1?'s':''}</span>`);
+    if(cats_sel.length > 0) chips.push(`<span style="background:var(--success);color:white;border-radius:20px;padding:3px 10px;font-size:0.72rem;">${cats_sel.length} categoria${cats_sel.length!==1?'s':''}</span>`);
     el.innerHTML = chips.join('');
-
     const badge = document.getElementById('filtros-ext-badge');
-    const total = (busca?1:0) + tipos_sel.length + (contas_sel.length>0?1:0) + (cats_sel.length>0?1:0);
+    const total = (busca?1:0) + tipos_sel.length + status_sel.length + (contas_sel.length>0?1:0) + (cats_sel.length>0?1:0);
     if(badge){ badge.style.display = total > 0 ? 'flex' : 'none'; badge.innerText = total; }
 }
+
 
 function renderExtrato(ctx) {
     var pSel      = ctx.pSel;
@@ -2320,20 +2339,26 @@ function renderExtrato(ctx) {
     var tiposSel  = _getFiltroExt('fext-tipo');
     var contasSel = _getFiltroExt('fext-conta');
     var catsSel   = _getFiltroExt('fext-cat');
+    var statusSel = _getFiltroExt('fext-status');
     const todasCats = [...new Set([...(cats.Receita||[]), ...(cats.Despesa||[])])];
 
     var itensFiltrados = bd.filter(function(i){
         if(!i.data.startsWith(pSel)) return false;
-        if(BENS_LISTA.includes(i.cat)) return false; // Benefícios → aba própria
+        if(BENS_LISTA.includes(i.cat)) return false;
         if(busca && i.desc.toLowerCase().indexOf(busca) === -1 && i.cat.toLowerCase().indexOf(busca) === -1
             && !(i.tags && i.tags.some(t => t.toLowerCase().indexOf(busca) !== -1))) return false;
         if(tiposSel.length > 0 && !tiposSel.includes(i.tipo)) return false;
         if(contasSel.length > 0 && !contasSel.includes(String(i.conta||''))) return false;
         if(catsSel.length > 0 && !catsSel.includes(i.cat)) return false;
+        if(statusSel.length > 0){
+            const isPago = !!i.pago;
+            if(statusSel.includes('pago') && !statusSel.includes('pendente') && !isPago) return false;
+            if(statusSel.includes('pendente') && !statusSel.includes('pago') && isPago) return false;
+        }
         return true;
     }).sort(function(a,b){ return new Date(b.data)-new Date(a.data); });
 
-    _atualizarChipsFiltros(busca, contasSel, catsSel, tiposSel);
+    _atualizarChipsFiltros(busca, contasSel, catsSel, tiposSel, statusSel);
 
     var lista = itensFiltrados.map(function(i){
         var cc = i.conta
@@ -2347,11 +2372,19 @@ function renderExtrato(ctx) {
         var comproHTML = i.comprovante
             ? `<span onclick="verComprovante('${i.comprovante}','${i.comprovanteTipo||''}')" title="Ver comprovante" style="cursor:pointer;font-size:1rem;">📎</span>`
             : '';
-        return '<div class="item-lista">'
-            +'<div class="item-info"><b>'+i.desc+cc+'</b>'
+        var isPago = !!i.pago;
+        var statusBtn = '<span onclick="togglePago('+i.id+')" title="'+(isPago?'Marcar como pendente':'Marcar como pago')+'"'
+            +' style="cursor:pointer;font-size:1rem;opacity:'+(isPago?'1':'0.35')+';transition:opacity 0.2s;'+(isPago?'filter:none;':'filter:grayscale(1);')+'">'
+            +(isPago?'✅':'✅')+'</span>';
+        var descStyle = isPago ? 'text-decoration:line-through;opacity:0.6;' : '';
+        return '<div class="item-lista" style="'+(isPago?'opacity:0.75;':'')+'">'
+            +'<div class="item-info"><b style="'+descStyle+'">'+i.desc+cc+'</b>'
             +tagsHtml
-            +'<small>'+i.data.split('-').reverse().join('/')+' • '+i.cat+'</small></div>'
-            +'<div style="display:flex;align-items:center;gap:10px;">'
+            +'<small>'+i.data.split('-').reverse().join('/')+' • '+i.cat
+            +(isPago?' · <span style="color:var(--success);font-weight:600;font-size:0.68rem;">✅ Pago</span>':' · <span style="color:#f39c12;font-weight:600;font-size:0.68rem;">⏳ Pendente</span>')
+            +'</small></div>'
+            +'<div style="display:flex;align-items:center;gap:8px;">'
+            +statusBtn
             +comproHTML
             +'<b style="color:'+(i.tipo==='Receita'?'var(--success)':'var(--danger)')+'">'+fmt(i.valor)+'</b>'
             +'<span onclick="editarLancamento('+i.id+')" style="cursor:pointer;">✏️</span>'
