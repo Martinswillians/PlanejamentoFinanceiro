@@ -4139,69 +4139,94 @@ const AJUDA_TOPICOS = [
     },
     {
         icone:'➕', titulo:'Novo Lançamento',
-        tags:['lançamento','novo','despesa','receita','transferência','parcelado','repetir','tag','comprovante','parcelas'],
+        tags:['lançamento','novo','despesa','receita','transferência','parcelado','repetir','tag','comprovante','parcelas','recorrente'],
         conteudo:`
 <p>Toque no botão <b>verde +</b> em qualquer tela para adicionar um novo lançamento.</p>
 <h4>Tipos disponíveis:</h4>
 <ul>
 <li><b>Despesa</b> — gasto comum</li>
 <li><b>Receita</b> — entrada de dinheiro</li>
-<li><b>↔️ Transferência entre contas</b> — move saldo de uma conta para outra automaticamente</li>
+<li><b>↔️ Transferência entre contas</b> — move saldo entre contas. O sistema cria automaticamente uma saída na conta de origem e uma entrada na conta de destino.</li>
 </ul>
-<h4>Campos:</h4>
+<h4>Campos principais:</h4>
 <ul>
-<li><b>Conta</b> — selecione qual conta está sendo usada</li>
-<li><b>Data</b> — data do lançamento</li>
-<li><b>Categoria</b> — classifique o gasto/receita; toque em <b>➕ Nova categoria...</b> para criar uma nova sem sair da tela</li>
-<li><b>Descrição</b> — nome do item</li>
-<li><b>Valor</b> — valor do lançamento</li>
-<li><b>🏷️ Tags</b> — palavras-chave separadas por vírgula (ex: viagem, família). Usadas na busca do extrato</li>
-<li><b>📎 Comprovante</b> — anexe uma foto ou PDF do recibo</li>
+<li><b>Conta</b> — quando duas contas têm o mesmo nome, o tipo aparece entre parênteses (ex: Nubank (C. Corrente))</li>
+<li><b>Categoria</b> — toque em <b>➕ Nova categoria...</b> para criar uma nova sem sair da tela</li>
+<li><b>🏷️ Tags</b> — palavras-chave separadas por vírgula (ex: viagem, família). Pesquisáveis no extrato</li>
+<li><b>📎 Comprovante</b> — anexe foto ou PDF do recibo; visualize clicando no ícone 📎 no extrato</li>
 </ul>
 <h4>Parcelamento:</h4>
-<p>Marque <b>Parcelado</b> e informe o número de parcelas. O sistema gera automaticamente um lançamento para cada mês, numerados como (1/10), (2/10), etc.</p>
+<p>Marque <b>Parcelado</b> e informe o número de parcelas. O sistema gera um lançamento para cada mês, numerados como (1/10), (2/10), etc.</p>
+<ul>
+<li>Ao editar uma parcela: escolha <b>📌 Apenas este mês</b> ou <b>🔄 Este e todos os futuros</b></li>
+<li>Ao excluir uma parcela: mesmas opções</li>
+</ul>
 <h4>Repetição personalizada:</h4>
-<p>Marque <b>Repetir</b> para criar uma série com frequência <b>Semanal</b>, <b>Quinzenal</b>, <b>Mensal</b> ou <b>Anual</b>, definindo quantas vezes deve repetir.</p>`
+<p>Marque <b>Repetir</b> para criar uma série com frequência:</p>
+<ul>
+<li><b>Semanal</b> — a cada 7 dias</li>
+<li><b>Quinzenal</b> — a cada 15 dias</li>
+<li><b>Mensal</b> — mesmo dia todo mês</li>
+<li><b>Anual</b> — mesmo dia todo ano</li>
+</ul>
+<p>Defina quantas vezes repetir e veja o preview da data final antes de salvar.</p>
+<p>💡 <b>Dica:</b> Parcelado e Repetir não podem ser usados ao mesmo tempo.</p>`
     },
     {
         icone:'📜', titulo:'Extrato — Aba Mês',
-        tags:['extrato','mês','busca','filtro','conta','categoria','totais','xls','pdf','exportar'],
+        tags:['extrato','mês','busca','filtro','conta','categoria','totais','xls','pdf','exportar','pago','pendente','status'],
         conteudo:`
 <p>A aba <b>📜 Mês</b> mostra todos os lançamentos do período selecionado (exceto benefícios).</p>
 <h4>Filtros disponíveis:</h4>
 <ul>
 <li><b>Busca livre</b> — pesquisa por descrição, categoria ou <b>tag</b></li>
-<li><b>🎛️ Filtros</b> — painel expandível com filtros de <b>Tipo</b> (Receita/Despesa), <b>Contas</b> e <b>Categorias</b> (multi-seleção)</li>
+<li><b>🎛️ Filtros</b> — painel expandível com:
+  <ul>
+    <li><b>Tipo</b> — Receita / Despesa</li>
+    <li><b>Status</b> — ✅ Pago / ⏳ Pendente (podem ser combinados)</li>
+    <li><b>Contas</b> — multi-seleção; botão "Todos/Nenhum" para selecionar todas</li>
+    <li><b>Categorias</b> — multi-seleção</li>
+  </ul>
+</li>
 <li>Chips coloridos mostram os filtros ativos; clique no ✕ da busca para limpar</li>
 </ul>
+<h4>Status Pago / Pendente:</h4>
+<p>Cada lançamento tem um ícone ✅ clicável:</p>
+<ul>
+<li>✅ <b>colorido</b> = pago — descrição aparece riscada e item fica levemente transparente</li>
+<li>✅ <b>acinzentado</b> = pendente</li>
+<li>Toque para alternar o status. O estado é salvo automaticamente.</li>
+</ul>
 <h4>Totalizador:</h4>
-<p>Exibe <b>Receitas | Despesas | Saldo</b> filtrados em tempo real. O rodapé mostra o total geral (receitas + despesas) com aviso de que engloba ambos.</p>
+<p>Exibe <b>Receitas | Despesas | Saldo</b> filtrados em tempo real. O rodapé mostra o total geral com aviso de que engloba ambos os tipos.</p>
 <h4>Exportação:</h4>
 <ul>
-<li><b>📊 XLS</b> — gera arquivo CSV compatível com Excel, com os dados filtrados</li>
+<li><b>📊 XLS</b> — CSV compatível com Excel com os dados filtrados</li>
 <li><b>📄 PDF</b> — abre nova aba com relatório formatado para impressão</li>
 </ul>
 <p>💡 <b>Dica:</b> Para editar ou excluir um lançamento, toque em ✏️ ou ❌ ao lado do item.</p>`
     },
     {
         icone:'📦', titulo:'Extrato — Aba Por Item',
-        tags:['por item','agrupado','parcelas','série','ver parcelas','recolher','ordenar','alfabético','data'],
+        tags:['por item','agrupado','parcelas','série','ver parcelas','recolher','ordenar','alfabético','data','xls','pdf'],
         conteudo:`
 <p>A aba <b>📦 Por Item</b> mostra todos os lançamentos agrupados, independente do mês.</p>
 <h4>Como funciona o agrupamento:</h4>
 <ul>
-<li>Parcelamentos (ex: Iphone 10×) aparecem como um único card com o <b>total</b> e o <b>valor por parcela</b></li>
-<li>Repetições e recorrentes também são agrupados</li>
-<li>Clique em <b>▼ ver X parcelas</b> para expandir e editar/excluir individualmente</li>
+<li>Parcelamentos (ex: Iphone 10×) aparecem como <b>um único card</b> com o total e o valor por parcela</li>
+<li>Repetições e recorrentes também são agrupados automaticamente</li>
+<li>Lançamentos com mesmo nome/categoria/conta também são consolidados</li>
+<li>Clique em <b>▼ ver X parcelas</b> para expandir e gerenciar individualmente</li>
+<li>Cada parcela expandida tem seus próprios botões ✏️ e ❌</li>
 </ul>
 <h4>Filtros e ordenação:</h4>
 <ul>
 <li><b>Busca</b> — por nome, categoria ou tag</li>
 <li><b>Tipo</b> — Todos / Despesas / Receitas</li>
-<li><b>Ordenação</b> — por <b>📅 Data</b> (mais recente primeiro) ou <b>🔤 A-Z</b> (alfabético)</li>
+<li><b>Ordenação</b> — <b>📅 Data</b> (mais recente primeiro) ou <b>🔤 A-Z</b> (alfabético)</li>
 </ul>
 <h4>Exportação:</h4>
-<p>Botões <b>📊 XLS</b> e <b>📄 PDF</b> exportam a visão consolidada por item.</p>`
+<p>Botões <b>📊 XLS</b> e <b>📄 PDF</b> exportam a visão consolidada com: item, conta, tipo, nº de ocorrências, valor unitário, total e período.</p>`
     },
     {
         icone:'🎁', titulo:'Extrato — Aba Benefícios',
@@ -4261,15 +4286,25 @@ const AJUDA_TOPICOS = [
     },
     {
         icone:'🏦', titulo:'Multi-Contas',
-        tags:['contas','banco','cartão','corrente','poupança','débito','crypto','transferência'],
+        tags:['contas','banco','cartão','corrente','poupança','débito','crypto','transferência','mesmo nome'],
         conteudo:`
 <p>Gerencie todas as suas contas em <b>Configurações → Gestão Multi-Contas</b>.</p>
 <h4>Tipos de conta disponíveis:</h4>
 <p>C. Corrente · C. Poupança · Cartão de Crédito · Cartão de Débito · Carteira · Investimento · Crypto</p>
-<h4>Dica sobre nomes iguais:</h4>
-<p>Se duas contas tiverem o mesmo nome (ex: dois Nubanks), o sistema automaticamente mostra o tipo entre parênteses: <b>Nubank (C. Corrente)</b> e <b>Nubank (Cartão de Crédito)</b>.</p>
+<h4>Contas com mesmo nome:</h4>
+<p>Se duas contas tiverem o mesmo nome (ex: dois Nubanks), o sistema automaticamente mostra o tipo entre parênteses em todos os lugares:</p>
+<ul>
+<li>No modal de lançamento: <b>Nubank (C. Corrente)</b> e <b>Nubank (Cartão de Crédito)</b></li>
+<li>No chip do extrato: diferenciados pela cor e nome completo</li>
+</ul>
+<h4>Editar conta:</h4>
+<p>Toque em ✏️ ao lado de uma conta para alterar nome e tipo via modal dedicado.</p>
+<h4>Excluir conta:</h4>
+<p>Toque em ❌. Se houver lançamentos vinculados, o sistema avisa quantos ficaram sem conta.</p>
 <h4>Transferência entre contas:</h4>
-<p>No lançamento, selecione o tipo <b>↔️ Transferência entre contas</b>. O sistema cria automaticamente uma saída na conta de origem e uma entrada na conta de destino.</p>`
+<p>No lançamento, selecione <b>↔️ Transferência entre contas</b>. O sistema cria automaticamente uma saída na conta de origem e uma entrada na conta de destino.</p>
+<h4>Filtro por conta no Extrato:</h4>
+<p>No painel de filtros, filtre por <b>tipo de conta</b> (ex: todos os Cartões de Crédito juntos) ou por <b>conta específica</b>.</p>`
     },
     {
         icone:'🏷️', titulo:'Categorias',
@@ -4317,6 +4352,44 @@ const AJUDA_TOPICOS = [
         conteudo:`
 <p>Toque no ícone <b>🌙 / ☀️</b> no header para alternar entre tema claro e escuro.</p>
 <p>A preferência é salva automaticamente e mantida entre sessões.</p>`
+    },
+    {
+        icone:'✅', titulo:'Status Pago / Pendente',
+        tags:['pago','pendente','status','check','marcar','pagar','filtro status'],
+        conteudo:`
+<p>Cada lançamento no <b>Extrato — Aba Mês</b> tem um indicador de status.</p>
+<h4>Como usar:</h4>
+<ul>
+<li>Toque no ícone <b>✅</b> ao lado do valor para alternar o status</li>
+<li>✅ <b>colorido</b> = <b>Pago</b> — descrição aparece riscada, item levemente transparente e mostra "✅ Pago" na linha de data</li>
+<li>✅ <b>acinzentado</b> = <b>Pendente</b> — mostra "⏳ Pendente" na linha de data</li>
+<li>O status é salvo automaticamente</li>
+</ul>
+<h4>Filtrar por status:</h4>
+<p>No painel <b>🎛️ Filtros</b>, seção <b>Status</b>:</p>
+<ul>
+<li>Marque <b>✅ Pago</b> para ver apenas os já pagos</li>
+<li>Marque <b>⏳ Pendente</b> para ver apenas os pendentes</li>
+<li>Marque ambos para ver os dois (sem filtro de status)</li>
+</ul>
+<p>O filtro de status se combina com todos os outros filtros (tipo, conta, categoria, busca).</p>
+<p>💡 <b>Dica:</b> Use o filtro "⏳ Pendente" no início do mês para ver rapidamente o que ainda falta pagar.</p>`
+    },
+    {
+        icone:'📖', titulo:'Manual Integrado',
+        tags:['manual','ajuda','help','instruções','como usar','buscar','pesquisar'],
+        conteudo:`
+<p>O <b>Manual</b> está sempre disponível dentro do app — sem precisar acessar documentação externa.</p>
+<h4>Como acessar:</h4>
+<p>Toque no botão <b>❓</b> no header (ao lado do ícone de tema 🌙).</p>
+<h4>Funcionalidades:</h4>
+<ul>
+<li><b>15 tópicos</b> cobrindo todas as funcionalidades do app</li>
+<li>Toque em qualquer tópico para expandir e ler o conteúdo</li>
+<li><b>Busca inteligente</b> — filtra por título, tags e conteúdo simultaneamente</li>
+<li>Se só um resultado → abre automaticamente</li>
+</ul>
+<p>💡 <b>Dica:</b> Pesquise palavras como "pago", "parcela", "exportar", "backup" para ir direto ao tópico relevante.</p>`
     },
     {
         icone:'🔔', titulo:'Notificações e Alertas',
