@@ -33,29 +33,6 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%232c3e50'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui,sans-serif' font-size='10' font-weight='bold' fill='white'>FIN</text></svg>">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%232c3e50'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui,sans-serif' font-size='58' font-weight='bold' fill='white'>FIN</text></svg>">
 
-    <!-- ===== FIREBASE SDK ===== -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-    <script>
-    // ╔══════════════════════════════════════════════════════╗
-    // ║  COLE AQUI AS SUAS CREDENCIAIS DO FIREBASE          ║
-    // ║  Configurações do Projeto → Seus apps → SDK setup   ║
-    // ╚══════════════════════════════════════════════════════╝
-    const firebaseConfig = {
-        apiKey:            "AIzaSyAt0ze_xhRi_jMTEhnvaKtkr3Fix8LFEqg",
-        authDomain:        "financeiro-pro-f661a.firebaseapp.com",
-        projectId:         "financeiro-pro-f661a",
-        storageBucket:     "financeiro-pro-f661a.firebasestorage.app",
-        messagingSenderId: "250860229679",
-        appId:             "1:250860229679:web:4a36be5362c19d262fe2da",
-        measurementId:     "G-7XB1DK6PC1"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const _auth = firebase.auth();
-    const _db   = firebase.firestore();
-    </script>
-
 
     <style>
         /* ===== CSS VARIABLES — LIGHT & DARK ===== */
@@ -791,65 +768,6 @@
     <button class="nav-item"        data-page="recorrentes"  onclick="showPage('recorrentes',this)"><span class="nav-icon">🔁</span>Fixas</button>
     <button class="nav-item"        data-page="config"       onclick="showPage('config',this)"><span class="nav-icon">⚙️</span>Config</button>
 </nav>
-
-<!-- ===== MODAL MIGRAÇÃO ===== -->
-<div class="modal" id="modalMigracao" style="z-index:10000;">
-    <div class="modal-content" style="border-radius:20px;max-height:90vh;overflow-y:auto;">
-        <div style="text-align:center;margin-bottom:16px;">
-            <span style="font-size:3rem;">🔄</span>
-            <h3 style="margin:8px 0 4px;">Migração para a Nuvem</h3>
-            <p style="font-size:0.82rem;color:var(--muted);margin:0;">Detectamos dados salvos localmente no seu dispositivo.</p>
-        </div>
-
-        <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:12px;margin-bottom:14px;font-size:0.8rem;color:#856404;line-height:1.6;">
-            ⚠️ <b>Atenção:</b> O sistema agora usa <b>Firebase</b> para guardar seus dados na nuvem.<br>
-            Seus <b>dados financeiros</b> podem ser migrados.<br>
-            Seu <b>login e senha anteriores</b> precisam ser recriados no Firebase.
-        </div>
-
-        <div id="migracao-contas-encontradas" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;font-size:0.82rem;">
-            <div style="font-weight:700;margin-bottom:8px;">📋 Contas encontradas:</div>
-            <div id="migracao-lista-contas"></div>
-        </div>
-
-        <div style="font-size:0.82rem;color:var(--text);margin-bottom:14px;line-height:1.6;">
-            <b>O que fazer:</b><br>
-            1️⃣ <b>Faça o backup</b> dos seus dados abaixo<br>
-            2️⃣ <b>Cadastre-se</b> com seu e-mail no Firebase (novo cadastro)<br>
-            3️⃣ <b>Importe</b> o backup após fazer login
-        </div>
-
-        <button onclick="migracaoExportarBackup()"
-            style="width:100%;background:#f39c12;color:white;border:none;border-radius:10px;padding:14px;font-weight:bold;margin-bottom:8px;font-size:0.9rem;cursor:pointer;">
-            📦 Baixar Backup dos Meus Dados
-        </button>
-        <button onclick="migracaoLimparEContinuar()"
-            style="width:100%;background:var(--primary);color:white;border:none;border-radius:10px;padding:14px;font-weight:bold;margin-bottom:8px;font-size:0.9rem;cursor:pointer;">
-            ✅ Já fiz backup — Ir para o Login
-        </button>
-        <button onclick="migracaoIgnorar()"
-            style="width:100%;background:none;border:none;color:var(--muted);padding:10px;cursor:pointer;font-size:0.82rem;">
-            Não tenho dados para migrar — Continuar
-        </button>
-    </div>
-</div>
-
-<!-- Modal Migração Importar (pós login) -->
-<div class="modal" id="modalImportarMigracao" style="z-index:9999;display:none;">
-    <div class="modal-content" style="border-radius:20px;">
-        <div style="text-align:center;margin-bottom:16px;">
-            <span style="font-size:2.5rem;">📥</span>
-            <h3 style="margin:8px 0 4px;">Importar seus dados</h3>
-            <p style="font-size:0.82rem;color:var(--muted);">Selecione o arquivo de backup que você baixou.</p>
-        </div>
-        <input type="file" id="migr-import-file" accept=".json"
-            style="margin-bottom:12px;" onchange="migracaoImportar(this)">
-        <button onclick="fecharModal('modalImportarMigracao')"
-            style="width:100%;background:none;border:none;color:var(--muted);padding:10px;cursor:pointer;">
-            Pular — começar do zero
-        </button>
-    </div>
-</div>
 
 <!-- ===== MODAIS ===== -->
 <div class="modal" id="modalRegistro">
@@ -3765,171 +3683,29 @@ function importarDados(event){
 }
 
 // =====================================================
-//  MIGRAÇÃO: localStorage → Firebase
+//  AUTENTICAÇÃO (localStorage simples, multi-usuário)
 // =====================================================
-function _detectarDadosLocais(){
-    // Verifica se há usuários no formato antigo
-    const users = JSON.parse(localStorage.getItem('will_users_v1')||'[]');
-    return users;
-}
-
-function _verificarMigracao(){
-    // Só verifica se não há flag de migração já feita
-    if(localStorage.getItem('will_migracao_v40') === 'done') return;
-    const users = _detectarDadosLocais();
-    if(!users.length) return;
-
-    // Monta lista de contas encontradas
-    const lista = document.getElementById('migracao-lista-contas');
-    lista.innerHTML = users.map(u => {
-        const dados  = JSON.parse(localStorage.getItem(`will_dados_${u.id}`)||'{}');
-        const nlanc  = (dados.bd||[]).length;
-        return `<div style="padding:6px 0;border-bottom:1px solid var(--border);">
-            <b>${u.nome}</b> <span style="color:var(--muted);font-size:0.78rem;">${u.email}</span>
-            <span style="float:right;font-size:0.75rem;color:var(--secondary);">${nlanc} lançamentos</span>
-        </div>`;
-    }).join('');
-
-    document.getElementById('modalMigracao').style.display = 'flex';
-}
-
-function migracaoExportarBackup(){
-    const users = _detectarDadosLocais();
-    if(!users.length){ mostrarToast('Nenhum dado local encontrado.','info',3000); return; }
-
-    // Exporta todos os usuários em um único backup
-    const backup = users.map(u => {
-        const dados = JSON.parse(localStorage.getItem(`will_dados_${u.id}`)||'{}');
-        const foto  = localStorage.getItem(`will_foto_${u.id}`)||null;
-        return { usuario: { nome:u.nome, email:u.email }, dados, foto };
-    });
-
-    const blob = new Blob([JSON.stringify({versao:'v40_migracao', data:new Date().toISOString(), usuarios:backup}, null, 2)],
-        {type:'application/json'});
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = `financeiro_pro_backup_migracao_${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    mostrarToast('📦 Backup baixado com sucesso!','success',4000);
-}
-
-function migracaoLimparEContinuar(){
-    localStorage.setItem('will_migracao_v40','done');
-    fecharModal('modalMigracao');
-    mostrarToast('✅ Após login, use Configurações → Importar Backup para restaurar seus dados.','info',7000);
-}
-
-function migracaoIgnorar(){
-    localStorage.setItem('will_migracao_v40','done');
-    fecharModal('modalMigracao');
-}
-
-function migracaoImportar(input){
-    const file = input.files[0]; if(!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e){
-        try {
-            const backup = JSON.parse(e.target.result);
-            let dados = null;
-
-            // Formato v40 (migração com múltiplos usuários)
-            if(backup.versao === 'v40_migracao' && backup.usuarios){
-                // Importa o primeiro usuário ou o que tem mais dados
-                const melhor = backup.usuarios.reduce((a,b) =>
-                    (b.dados?.bd?.length||0) > (a.dados?.bd?.length||0) ? b : a
-                );
-                dados = melhor.dados;
-                if(melhor.foto && usuarioAtual) _salvarFoto(usuarioAtual.id, melhor.foto);
-
-            // Formato backup padrão (exportação das configurações)
-            } else if(backup.bd || backup.metas){
-                dados = backup;
-            } else {
-                mostrarToast('❌ Formato de backup não reconhecido.','warn',4000);
-                return;
-            }
-
-            if(dados){
-                bd            = dados.bd            || [];
-                metas         = dados.metas         || [];
-                cats          = dados.cats          || cats;
-                investimentos = dados.investimentos || [];
-                recorrentes   = dados.recorrentes   || [];
-                contas        = dados.contas        || contas;
-                metasInv      = dados.metasInv      || [];
-                saveAll();
-                fecharModal('modalImportarMigracao');
-                initFiltro(); render();
-                mostrarToast(`✅ ${bd.length} lançamentos importados com sucesso!`,'success',5000);
-            }
-        } catch(err){
-            mostrarToast('❌ Erro ao ler backup: '+err.message,'warn',4000);
-        }
-    };
-    reader.readAsText(file);
-}
-
-// Atualiza importação do Config para aceitar backup v40
-function importarBackup(input){
-    const file = input.files[0]; if(!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e){
-        try {
-            const backup = JSON.parse(e.target.result);
-            let dados = null;
-            if(backup.versao === 'v40_migracao' && backup.usuarios){
-                dados = backup.usuarios.reduce((a,b)=>(b.dados?.bd?.length||0)>(a.dados?.bd?.length||0)?b:a).dados;
-            } else if(backup.bd||backup.metas){
-                dados = backup;
-            } else {
-                mostrarToast('❌ Formato inválido.','warn',3000); return;
-            }
-            if(dados){
-                bd=dados.bd||[]; metas=dados.metas||[]; cats=dados.cats||cats;
-                investimentos=dados.investimentos||[]; recorrentes=dados.recorrentes||[];
-                contas=dados.contas||contas; metasInv=dados.metasInv||[];
-                saveAll(); initFiltro(); render();
-                mostrarToast('✅ Backup importado: '+bd.length+' lançamentos.','success',4000);
-            }
-        } catch(err){ mostrarToast('❌ Erro: '+err.message,'warn',3000); }
-    };
-    reader.readAsText(file);
-}
-
-// ─── APÓS LOGIN: Verifica se deve oferecer importação ───
-function _verificarImportacaoPosMigracao(){
-    // Se havia dados locais e foi migrado, oferece importar backup
-    if(localStorage.getItem('will_migracao_v40') === 'done' && bd.length === 0){
-        const users = _detectarDadosLocais();
-        if(users.length > 0 || true){ // sempre oferece se não tem dados ainda
-            setTimeout(()=>{
-                document.getElementById('modalImportarMigracao').style.display='flex';
-            }, 1500);
-        }
-    }
-}
-
-// =====================================================
-//  AUTENTICAÇÃO — Firebase Auth + Firestore (v40)
-// =====================================================
-let usuarioAtual   = null;
+let usuarioAtual = null;
 let _modoVisitante = false;
 
+function _hashSenha(s){ let h=0; for(let i=0;i<s.length;i++) h=(Math.imul(31,h)+s.charCodeAt(i))|0; return h.toString(36); }
+function _usuarios(){ return JSON.parse(localStorage.getItem('will_users_v1')||'[]'); }
+function _salvarUsuarios(arr){ localStorage.setItem('will_users_v1',JSON.stringify(arr)); }
+function _chaveUsuario(uid){ return `will_dados_${uid}`; }
 function _primeiraLetra(nome){ return (nome||'U')[0].toUpperCase(); }
-function _primeiroNome(nome){ return (nome||'').split(' ')[0]; }
+function _chaveFoto(uid){ return `will_foto_${uid}`; }
 
-// ─── FOTO DE PERFIL (mantida em localStorage como base64) ───
-function _getFoto(uid){ return localStorage.getItem(`will_foto_${uid}`) || null; }
-function _salvarFoto(uid, b64){ localStorage.setItem(`will_foto_${uid}`, b64); }
-function _removerFotoStorage(uid){ localStorage.removeItem(`will_foto_${uid}`); }
+// ─── FOTO DE PERFIL ───
+function _getFoto(uid){ return localStorage.getItem(_chaveFoto(uid)) || null; }
+function _salvarFoto(uid, base64){ localStorage.setItem(_chaveFoto(uid), base64); }
+function _removerFotoStorage(uid){ localStorage.removeItem(_chaveFoto(uid)); }
 
 function _renderAvatar(el, user){
     if(!el) return;
     const foto = user && !_modoVisitante ? _getFoto(user.id) : null;
     const isUmAvatar = el.id === 'um-avatar';
-    const pencilEl   = isUmAvatar ? document.getElementById('um-avatar-pencil') : null;
+    const pencilEl = isUmAvatar ? document.getElementById('um-avatar-pencil') : null;
+
     if(foto){
         el.innerHTML = '';
         const img = document.createElement('img');
@@ -3941,7 +3717,8 @@ function _renderAvatar(el, user){
     } else {
         el.innerHTML = '';
         el.style.background = _modoVisitante ? '#e67e22' : 'var(--secondary)';
-        el.appendChild(document.createTextNode(_primeiraLetra(user?.nome||'V')));
+        const letra = document.createTextNode(_primeiraLetra(user?.nome || 'V'));
+        el.appendChild(letra);
         if(pencilEl){ pencilEl.style.display='flex'; el.appendChild(pencilEl); }
     }
 }
@@ -3951,8 +3728,8 @@ function previewFotoPerfil(input){
     const reader = new FileReader();
     reader.onload = function(e){
         const base64 = e.target.result;
-        const prev   = document.getElementById('perfil-foto-preview');
-        const pencil = document.getElementById('perfil-pencil-overlay');
+        const prev = document.getElementById('perfil-foto-preview');
+        const pencilOverlay = document.getElementById('perfil-pencil-overlay');
         prev.innerHTML = '';
         const img = document.createElement('img');
         img.src = base64;
@@ -3961,298 +3738,758 @@ function previewFotoPerfil(input){
         prev.style.background = 'transparent';
         prev.dataset.novaFoto = base64;
         document.getElementById('btn-remover-foto').style.display = 'inline-block';
-        if(pencil){ pencil.style.display='none'; prev.appendChild(pencil); }
+        if(pencilOverlay){ pencilOverlay.style.display='none'; prev.appendChild(pencilOverlay); }
     };
     reader.readAsDataURL(file);
 }
 
 function removerFotoPerfil(){
-    const prev   = document.getElementById('perfil-foto-preview');
-    const pencil = document.getElementById('perfil-pencil-overlay');
+    const prev = document.getElementById('perfil-foto-preview');
+    const pencilOverlay = document.getElementById('perfil-pencil-overlay');
     prev.dataset.novaFoto = '';
     prev.innerHTML = '';
     prev.style.background = 'var(--secondary)';
-    prev.appendChild(document.createTextNode(_primeiraLetra(usuarioAtual?.nome||'U')));
+    prev.appendChild(document.createTextNode(_primeiraLetra(usuarioAtual?.nome || 'U')));
     document.getElementById('btn-remover-foto').style.display = 'none';
-    if(pencil){ pencil.style.display='flex'; prev.appendChild(pencil); }
+    if(pencilOverlay){ pencilOverlay.style.display='flex'; prev.appendChild(pencilOverlay); }
 }
 
-// ─── MODO VISITANTE ───
+// ─── VISITANTE ───
 function entrarComoVisitante(){
     _modoVisitante = true;
-    usuarioAtual   = { id:'__guest__', nome:'Visitante', email:'visitante@local' };
-    bd=[]; metas=[]; investimentos=[]; recorrentes=[]; metasInv=[];
+    const visitorUser = { id:'__guest__', nome:'Visitante', email:'visitante@financeiro.pro' };
+    usuarioAtual = visitorUser;
+    // Carrega dados demo isolados (não salva nada)
+    bd = []; metas = []; investimentos = []; recorrentes = []; metasInv = [];
     cats = { Despesa:['Alimentação','Transporte','Moradia','Lazer','Saúde'], Receita:['Salário','Freelance'] };
     contas = [{id:1,nome:'Demo Conta',tipo:'Corrente',cor:'#e67e22'}];
     document.getElementById('login-screen').classList.add('hidden');
     _atualizarHeaderUsuario();
-    _primeiroRender = false;
+    _primeiroRender = false;   // visitante não recebe toasts de alerta
     _alertasPeriodo = '';
     initFiltro(); render();
-    mostrarToast('👀 Modo visitante — dados não são salvos.','info',5000);
+    mostrarToast('👀 Modo visitante — dados não são salvos.', 'info', 5000);
 }
 
-// ─── FIREBASE: LOGIN ───
-function fazerLogin(){
-    const email = document.getElementById('l-email').value.trim();
-    const senha  = document.getElementById('l-senha').value;
-    const err    = document.getElementById('login-error');
-    err.style.display = 'none';
-    if(!email||!senha){ err.innerText='Preencha e-mail e senha.'; err.style.display='block'; return; }
-    err.innerText = '⏳ Autenticando...'; err.style.display='block';
-    _auth.signInWithEmailAndPassword(email, senha)
-        .then(() => { err.style.display='none'; })
-        .catch(e => {
-            const msgs = {
-                'auth/user-not-found':    'E-mail não encontrado.',
-                'auth/wrong-password':    'Senha incorreta.',
-                'auth/invalid-email':     'E-mail inválido.',
-                'auth/invalid-credential':'E-mail ou senha incorretos.',
-                'auth/too-many-requests': 'Muitas tentativas. Tente mais tarde.'
-            };
-            err.innerText = msgs[e.code] || 'Erro: ' + e.message;
-            err.style.display = 'block';
-        });
-}
-
-// ─── FIREBASE: CADASTRO ───
-function fazerCadastro(){
-    const nome   = document.getElementById('c-nome').value.trim();
-    const email  = document.getElementById('c-email').value.trim();
-    const senha  = document.getElementById('c-senha').value;
-    const senha2 = document.getElementById('c-senha2').value;
-    const err    = document.getElementById('login-error');
-    err.style.display = 'none';
-    if(!nome){ err.innerText='Informe seu nome.'; err.style.display='block'; return; }
-    if(!email||!email.includes('@')){ err.innerText='E-mail inválido.'; err.style.display='block'; return; }
-    if(senha.length<6){ err.innerText='Senha com mínimo 6 caracteres.'; err.style.display='block'; return; }
-    if(senha!==senha2){ err.innerText='As senhas não coincidem.'; err.style.display='block'; return; }
-    err.innerText='⏳ Criando conta...'; err.style.display='block';
-    _auth.createUserWithEmailAndPassword(email, senha)
-        .then(cred => {
-            // Salva nome no Firestore (perfil do usuário)
-            return _db.collection('usuarios').doc(cred.user.uid).set({
-                nome: nome, email: email, criadoEm: new Date().toISOString()
-            }, { merge: true });
-        })
-        .then(() => { err.style.display='none'; mostrarLogin(); })
-        .catch(e => {
-            const msgs = {
-                'auth/email-already-in-use': 'E-mail já cadastrado.',
-                'auth/invalid-email':        'E-mail inválido.',
-                'auth/weak-password':        'Senha muito fraca.'
-            };
-            err.innerText = msgs[e.code] || 'Erro: ' + e.message;
-            err.style.display = 'block';
-        });
-}
-
-// ─── FIREBASE: LOGOUT ───
-function fazerLogout(){
-    _auth.signOut().then(() => {
-        _modoVisitante = false;
-        usuarioAtual   = null;
-        bd=[]; metas=[]; investimentos=[]; recorrentes=[]; contas=[]; metasInv=[];
-        document.getElementById('user-menu').style.display = 'none';
-        document.getElementById('login-screen').classList.remove('hidden');
-        document.getElementById('l-email').value = '';
-        document.getElementById('l-senha').value = '';
-        document.getElementById('login-error').style.display = 'none';
-        mostrarLogin();
-    });
-}
-
-function voltarParaLogin(){ fazerLogout(); }
 function fecharUserMenu(){ document.getElementById('user-menu').style.display='none'; }
 
-// ─── FIREBASE: RECUPERAÇÃO DE SENHA ───
-function gerarCodigoRecuperacao(){
-    const email = document.getElementById('rec-email').value.trim();
-    const err   = document.getElementById('login-error');
-    err.style.display = 'none';
-    if(!email||!email.includes('@')){ err.innerText='E-mail inválido.'; err.style.display='block'; return; }
-    _auth.sendPasswordResetEmail(email)
-        .then(() => {
-            mostrarLogin();
-            setTimeout(() => {
-                const el = document.getElementById('login-error');
-                el.style.cssText = 'display:block;background:rgba(39,174,96,0.2);border:1px solid rgba(39,174,96,0.4);color:#a9dfbf;border-radius:8px;padding:10px 12px;font-size:0.82rem;margin-bottom:12px;';
-                el.innerText = '✅ E-mail de redefinição enviado! Verifique sua caixa de entrada.';
-            }, 50);
-        })
-        .catch(e => {
-            const msgs = { 'auth/user-not-found':'Nenhuma conta com este e-mail.', 'auth/invalid-email':'E-mail inválido.' };
-            err.innerText = msgs[e.code] || 'Erro: ' + e.message;
-            err.style.display = 'block';
-        });
+function voltarParaLogin(){
+    // Limpa sessão de visitante e exibe tela de login
+    _modoVisitante = false;
+    usuarioAtual = null;
+    bd=[]; metas=[]; investimentos=[]; recorrentes=[]; contas=[]; metasInv=[];
+    document.getElementById('user-menu').style.display='none';
+    document.getElementById('l-email').value='';
+    document.getElementById('l-senha').value='';
+    document.getElementById('login-error').style.display='none';
+    mostrarLogin();
+    document.getElementById('login-screen').classList.remove('hidden');
 }
 
-// Mantém compatibilidade com o HTML (passo 2 do modal de recuperação não é mais necessário)
-function confirmarRecuperacao(){ gerarCodigoRecuperacao(); }
+function fazerLogin(){
+    const email=document.getElementById('l-email').value.trim().toLowerCase();
+    const senha=document.getElementById('l-senha').value;
+    const err=document.getElementById('login-error');
+    err.style.display='none';
+    if(!email||!senha){ err.innerText='Preencha e-mail e senha.'; err.style.display='block'; return; }
+    const users=_usuarios();
+    const user=users.find(u=>u.email===email);
+    if(!user||user.hash!==_hashSenha(senha)){
+        err.innerText='E-mail ou senha incorretos.'; err.style.display='block'; return;
+    }
+    _modoVisitante = false;
+    _entrarComo(user);
+}
 
-// ─── PERFIL: EDITAR ───
+function fazerCadastro(){
+    const nome=document.getElementById('c-nome').value.trim();
+    const email=document.getElementById('c-email').value.trim().toLowerCase();
+    const senha=document.getElementById('c-senha').value;
+    const senha2=document.getElementById('c-senha2').value;
+    const err=document.getElementById('login-error');
+    err.style.display='none';
+    if(!nome){ err.innerText='Informe seu nome.'; err.style.display='block'; return; }
+    if(!email||!email.includes('@')){ err.innerText='E-mail inválido.'; err.style.display='block'; return; }
+    if(senha.length<6){ err.innerText='Senha deve ter ao menos 6 caracteres.'; err.style.display='block'; return; }
+    if(senha!==senha2){ err.innerText='As senhas não coincidem.'; err.style.display='block'; return; }
+    const users=_usuarios();
+    if(users.find(u=>u.email===email)){ err.innerText='Este e-mail já está cadastrado.'; err.style.display='block'; return; }
+    const user={ id:Date.now().toString(36), nome, email, hash:_hashSenha(senha) };
+    users.push(user); _salvarUsuarios(users);
+    _modoVisitante = false;
+    _entrarComo(user);
+}
+
+function _entrarComo(user){
+    usuarioAtual = user;
+    localStorage.setItem('will_sessao', JSON.stringify({id:user.id, ts:Date.now()}));
+    _carregarDadosUsuario(user.id);
+    document.getElementById('filtro-ano').value = '';
+    document.getElementById('filtro-mes').value = String(new Date().getMonth()+1).padStart(2,'0');
+    document.getElementById('login-screen').classList.add('hidden');
+    _atualizarHeaderUsuario();
+    _primeiroRender = true;
+    _alertasPeriodo = '';
+    initFiltro(); render();
+    mostrarToast(`👋 Olá, ${_primeiroNome(user.nome)}! Bem-vindo(a) de volta.`, 'success', 4000);
+}
+
+function _primeiroNome(nome){ return (nome||'').split(' ')[0]; }
+
+function _atualizarHeaderUsuario(){
+    if(!usuarioAtual) return;
+    const avatarEl = document.getElementById('user-avatar');
+    const umAvatarEl = document.getElementById('um-avatar');
+    _renderAvatar(avatarEl, usuarioAtual);
+    _renderAvatar(umAvatarEl, usuarioAtual);
+    document.getElementById('um-nome').innerText = usuarioAtual.nome;
+    document.getElementById('um-email').innerText = usuarioAtual.email;
+
+    // Badge e banner visitante
+    const visitorBadge = document.getElementById('visitor-badge');
+    const visitorBanner = document.getElementById('um-visitor-banner');
+    const acoesUsuario = document.getElementById('um-acoes-usuario');
+    const acoesVisitante = document.getElementById('um-acoes-visitante');
+    if(_modoVisitante){
+        visitorBadge.style.display = 'inline-flex';
+        visitorBanner.style.display = 'block';
+        acoesUsuario.style.display = 'none';
+        acoesVisitante.style.display = 'block';
+    } else {
+        visitorBadge.style.display = 'none';
+        visitorBanner.style.display = 'none';
+        acoesUsuario.style.display = 'block';
+        acoesVisitante.style.display = 'none';
+    }
+
+    // Saudação
+    const h = new Date().getHours();
+    const periodo = h<12?'Bom dia':h<18?'Boa tarde':'Boa noite';
+    document.getElementById('header-saudacao').innerText = _modoVisitante
+        ? `👀 Modo visitante`
+        : `${periodo}, ${_primeiroNome(usuarioAtual.nome)}!`;
+}
+
+function _carregarDadosUsuario(uid){
+    const raw = localStorage.getItem(_chaveUsuario(uid));
+    const dados = raw ? JSON.parse(raw) : {};
+    bd            = dados.bd            || [];
+    metas         = dados.metas         || [];
+    cats          = dados.cats          || { Despesa:["Alimentação","Transporte","Moradia","Lazer","Ticket Alimentação","Ticket Refeição","Cartão Benefícios","Academia","Saúde","Estudo"], Receita:["Salário","Freelance","Ticket Alimentação","Ticket Refeição","Cartão Benefícios","Restituição IRPF"] };
+    investimentos = dados.investimentos || [];
+    recorrentes   = dados.recorrentes   || [];
+    contas        = dados.contas        || [{id:1,nome:'Conta Principal',tipo:'Corrente',cor:'#3498db'},{id:2,nome:'Carteira',tipo:'Carteira',cor:'#27ae60'}];
+    metasInv      = dados.metasInv      || [];
+}
+
+function fazerLogout(){
+    localStorage.removeItem('will_sessao');
+    _modoVisitante = false;
+    usuarioAtual=null;
+    bd=[]; metas=[]; investimentos=[]; recorrentes=[]; contas=[]; metasInv=[];
+    document.getElementById('user-menu').style.display='none';
+    document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('l-email').value='';
+    document.getElementById('l-senha').value='';
+    document.getElementById('login-error').style.display='none';
+    mostrarLogin();
+}
+
+function toggleUserMenu(){
+    const m=document.getElementById('user-menu');
+    m.style.display = m.style.display==='none'?'block':'none';
+}
+document.addEventListener('click',e=>{
+    const menu=document.getElementById('user-menu');
+    const avatar=document.getElementById('user-avatar');
+    if(menu&&menu.style.display!=='none'&&!menu.contains(e.target)&&!avatar.contains(e.target))
+        menu.style.display='none';
+});
+
 function abrirEditarPerfil(){
-    document.getElementById('user-menu').style.display = 'none';
+    document.getElementById('user-menu').style.display='none';
     if(_modoVisitante){ mostrarToast('👀 Visitantes não podem editar perfil.','info',3000); return; }
-    document.getElementById('p-nome').value  = usuarioAtual.nome;
-    document.getElementById('p-senha').value = '';
-    document.getElementById('p-senha2').value= '';
-    const prev   = document.getElementById('perfil-foto-preview');
-    const pencil = document.getElementById('perfil-pencil-overlay');
+    document.getElementById('p-nome').value = usuarioAtual.nome;
+    document.getElementById('p-senha').value='';
+    document.getElementById('p-senha2').value='';
+
+    const prev = document.getElementById('perfil-foto-preview');
+    const pencilOverlay = document.getElementById('perfil-pencil-overlay');
     prev.dataset.novaFoto = '';
     const fotoAtual = _getFoto(usuarioAtual.id);
     if(fotoAtual){
         prev.innerHTML = '';
         const img = document.createElement('img');
         img.src = fotoAtual;
-        img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+        img.style.cssText='width:100%;height:100%;object-fit:cover;display:block;';
         prev.appendChild(img);
-        prev.style.background = 'transparent';
-        document.getElementById('btn-remover-foto').style.display = 'inline-block';
-        if(pencil){ pencil.style.display='none'; prev.appendChild(pencil); }
+        prev.style.background='transparent';
+        document.getElementById('btn-remover-foto').style.display='inline-block';
+        if(pencilOverlay){ pencilOverlay.style.display='none'; prev.appendChild(pencilOverlay); }
     } else {
         prev.innerHTML = '';
-        prev.style.background = 'var(--secondary)';
+        prev.style.background='var(--secondary)';
         prev.appendChild(document.createTextNode(_primeiraLetra(usuarioAtual.nome)));
-        document.getElementById('btn-remover-foto').style.display = 'none';
-        if(pencil){ pencil.style.display='flex'; prev.appendChild(pencil); }
+        document.getElementById('btn-remover-foto').style.display='none';
+        if(pencilOverlay){ pencilOverlay.style.display='flex'; prev.appendChild(pencilOverlay); }
     }
-    document.getElementById('modalPerfil').style.display = 'flex';
+
+    document.getElementById('modalPerfil').style.display='flex';
 }
 
 function salvarPerfil(){
-    const nome  = document.getElementById('p-nome').value.trim();
-    const s1    = document.getElementById('p-senha').value;
-    const s2    = document.getElementById('p-senha2').value;
+    const nome=document.getElementById('p-nome').value.trim();
+    const s1=document.getElementById('p-senha').value;
+    const s2=document.getElementById('p-senha2').value;
     if(!nome){ mostrarToast('Informe um nome.','warn',3000); return; }
     if(s1&&s1.length<6){ mostrarToast('Senha muito curta.','warn',3000); return; }
     if(s1&&s1!==s2){ mostrarToast('Senhas não coincidem.','warn',3000); return; }
-    const prev     = document.getElementById('perfil-foto-preview');
+
+    // Processa foto
+    const prev = document.getElementById('perfil-foto-preview');
     const novaFoto = prev.dataset.novaFoto;
-    if(novaFoto === '') _removerFotoStorage(usuarioAtual.id);
-    else if(novaFoto)   _salvarFoto(usuarioAtual.id, novaFoto);
-    // Atualiza nome no Firestore
-    _db.collection('usuarios').doc(usuarioAtual.id).set({ nome }, { merge: true });
-    usuarioAtual.nome = nome;
-    // Atualiza senha no Firebase Auth
-    if(s1) _auth.currentUser.updatePassword(s1).catch(e=>mostrarToast('Erro ao alterar senha: '+e.message,'warn',4000));
+    if(novaFoto === ''){
+        // Foi clicado "remover"
+        _removerFotoStorage(usuarioAtual.id);
+    } else if(novaFoto){
+        _salvarFoto(usuarioAtual.id, novaFoto);
+    }
+
+    const users=_usuarios();
+    const idx=users.findIndex(u=>u.id===usuarioAtual.id);
+    users[idx].nome=nome;
+    if(s1) users[idx].hash=_hashSenha(s1);
+    _salvarUsuarios(users);
+    usuarioAtual=users[idx];
+    localStorage.setItem('will_sessao',JSON.stringify({id:usuarioAtual.id,ts:Date.now()}));
     _atualizarHeaderUsuario();
     fecharModal('modalPerfil');
     mostrarToast('✅ Perfil atualizado!','success',3000);
 }
 
-// ─── HEADER ───
-function _atualizarHeaderUsuario(){
-    if(!usuarioAtual) return;
-    const avatarEl   = document.getElementById('user-avatar');
-    const umAvatarEl = document.getElementById('um-avatar');
-    _renderAvatar(avatarEl,   usuarioAtual);
-    _renderAvatar(umAvatarEl, usuarioAtual);
-    document.getElementById('um-nome').innerText  = usuarioAtual.nome;
-    document.getElementById('um-email').innerText = usuarioAtual.email;
-    const visitorBadge   = document.getElementById('visitor-badge');
-    const visitorBanner  = document.getElementById('um-visitor-banner');
-    const acoesUsuario   = document.getElementById('um-acoes-usuario');
-    const acoesVisitante = document.getElementById('um-acoes-visitante');
-    if(_modoVisitante){
-        visitorBadge.style.display   = 'inline-flex';
-        visitorBanner.style.display  = 'block';
-        acoesUsuario.style.display   = 'none';
-        acoesVisitante.style.display = 'block';
-    } else {
-        visitorBadge.style.display   = 'none';
-        visitorBanner.style.display  = 'none';
-        acoesUsuario.style.display   = 'block';
-        acoesVisitante.style.display = 'none';
-    }
-    const h = new Date().getHours();
-    const periodo = h<12?'Bom dia':h<18?'Boa tarde':'Boa noite';
-    document.getElementById('header-saudacao').innerText = _modoVisitante
-        ? '👀 Modo visitante'
-        : `${periodo}, ${_primeiroNome(usuarioAtual.nome)}!`;
+function mostrarCadastro(){
+    document.getElementById('login-form').style.display='none';
+    document.getElementById('cadastro-form').style.display='block';
+    document.getElementById('recuperacao-form').style.display='none';
+    document.getElementById('login-error').style.display='none';
+}
+function mostrarLogin(){
+    document.getElementById('cadastro-form').style.display='none';
+    document.getElementById('recuperacao-form').style.display='none';
+    document.getElementById('login-form').style.display='block';
+    document.getElementById('login-error').style.display='none';
+}
+function mostrarRecuperacao(){
+    document.getElementById('login-form').style.display='none';
+    document.getElementById('cadastro-form').style.display='none';
+    document.getElementById('recuperacao-form').style.display='block';
+    document.getElementById('login-error').style.display='none';
+    document.getElementById('rec-passo1').style.display='block';
+    document.getElementById('rec-passo2').style.display='none';
+    document.getElementById('rec-email').value='';
+    _limparTimerRec();
 }
 
-// ─── FIREBASE: CARREGAR DADOS (Firestore) ───
-function _carregarDadosUsuario(uid){
-    const cached = localStorage.getItem(`will_dados_${uid}`);
-    if(cached){
-        const d = JSON.parse(cached);
-        bd=[...d.bd||[]]; metas=[...d.metas||[]];
-        cats=d.cats||{Despesa:['Alimentação','Transporte','Moradia','Lazer','Ticket Alimentação','Ticket Refeição','Cartão Benefícios','Academia','Saúde','Estudo'],Receita:['Salário','Freelance','Ticket Alimentação','Ticket Refeição','Cartão Benefícios','Restituição IRPF']};
-        investimentos=[...d.investimentos||[]]; recorrentes=[...d.recorrentes||[]];
-        contas=d.contas||[{id:1,nome:'Conta Principal',tipo:'Corrente',cor:'#3498db'},{id:2,nome:'Carteira',tipo:'Carteira',cor:'#27ae60'}];
-        metasInv=[...d.metasInv||[]];
-    }
-    // Carrega do Firestore em background e sincroniza
-    _db.collection('usuarios').doc(uid).collection('dados').doc('financeiro').get()
-        .then(doc => {
-            if(doc.exists){
-                const d = doc.data();
-                bd            = d.bd            || bd;
-                metas         = d.metas         || metas;
-                cats          = d.cats          || cats;
-                investimentos = d.investimentos || investimentos;
-                recorrentes   = d.recorrentes   || recorrentes;
-                contas        = d.contas        || contas;
-                metasInv      = d.metasInv      || metasInv;
-                localStorage.setItem(`will_dados_${uid}`, JSON.stringify({bd,metas,cats,investimentos,recorrentes,contas,metasInv}));
-                initFiltro(); render();
-            }
-        })
-        .catch(() => {}); // offline: usa cache local
+// ── Estado recuperação ──
+let _recCodigo=null, _recEmail=null, _recTimerInterval=null, _recExpiry=null;
+function _limparTimerRec(){
+    if(_recTimerInterval){ clearInterval(_recTimerInterval); _recTimerInterval=null; }
+    _recCodigo=null; _recEmail=null; _recExpiry=null;
+}
+function gerarCodigoRecuperacao(){
+    const email=document.getElementById('rec-email').value.trim().toLowerCase();
+    const err=document.getElementById('login-error');
+    err.style.display='none';
+    if(!email||!email.includes('@')){ err.innerText='Informe um e-mail válido.'; err.style.display='block'; return; }
+    const users=_usuarios();
+    const user=users.find(u=>u.email===email);
+    if(!user){ err.innerText='Nenhuma conta encontrada com este e-mail.'; err.style.display='block'; return; }
+    _recCodigo=String(Math.floor(100000+Math.random()*900000));
+    _recEmail=email;
+    _recExpiry=Date.now()+10*60*1000; // 10 minutos
+    document.getElementById('rec-codigo-display').innerText=_recCodigo;
+    document.getElementById('rec-codigo-display').style.color='#f1c40f';
+    document.getElementById('rec-codigo-input').value='';
+    document.getElementById('rec-nova-senha').value='';
+    document.getElementById('rec-nova-senha2').value='';
+    document.getElementById('rec-passo1').style.display='none';
+    document.getElementById('rec-passo2').style.display='block';
+    err.style.display='none';
+    // Limpa timer anterior antes de iniciar novo
+    if(_recTimerInterval){ clearInterval(_recTimerInterval); _recTimerInterval=null; }
+    _recTimerInterval=setInterval(function(){
+        var restam=Math.max(0,_recExpiry-Date.now());
+        var m=Math.floor(restam/60000), s=Math.floor((restam%60000)/1000);
+        var timerEl=document.getElementById('rec-timer');
+        if(timerEl) timerEl.innerText=m+':'+(s<10?'0':'')+s;
+        if(restam<=0){
+            clearInterval(_recTimerInterval); _recTimerInterval=null;
+            var disp=document.getElementById('rec-codigo-display');
+            if(disp){ disp.innerText='------'; disp.style.color='rgba(255,255,255,0.25)'; }
+        }
+    },1000);
+}
+function confirmarRecuperacao(){
+    const err=document.getElementById('login-error');
+    const codigo=document.getElementById('rec-codigo-input').value.trim();
+    const nova=document.getElementById('rec-nova-senha').value;
+    const nova2=document.getElementById('rec-nova-senha2').value;
+    err.style.display='none';
+    // Verifica expiração apenas se o timer ainda existe e o código foi zerado
+    if(!_recCodigo){ err.innerText='Código expirado. Clique em "Gerar novo código".'; err.style.display='block'; return; }
+    if(_recExpiry && Date.now()>_recExpiry){ err.innerText='Código expirado. Clique em "Gerar novo código".'; err.style.display='block'; return; }
+    if(codigo!==_recCodigo){ err.innerText='Código incorreto. Verifique e tente novamente.'; err.style.display='block'; return; }
+    if(nova.length<6){ err.innerText='A nova senha deve ter ao menos 6 caracteres.'; err.style.display='block'; return; }
+    if(nova!==nova2){ err.innerText='As senhas não coincidem.'; err.style.display='block'; return; }
+    const users=_usuarios();
+    const idx=users.findIndex(u=>u.email===_recEmail);
+    if(idx===-1){ err.innerText='Conta não encontrada.'; err.style.display='block'; return; }
+    users[idx].hash=_hashSenha(nova);
+    _salvarUsuarios(users);
+    if(_recTimerInterval){ clearInterval(_recTimerInterval); _recTimerInterval=null; }
+    _recCodigo=null; _recEmail=null; _recExpiry=null;
+    mostrarLogin();
+    setTimeout(function(){
+        const errEl=document.getElementById('login-error');
+        errEl.style.cssText='display:block;background:rgba(39,174,96,0.2);border:1px solid rgba(39,174,96,0.4);color:#a9dfbf;border-radius:8px;padding:10px 12px;font-size:0.82rem;margin-bottom:12px;';
+        errEl.innerText='✅ Senha redefinida! Faça login com a nova senha.';
+    },50);
+}
+function toggleSenhaVis(id,btn){
+    const el=document.getElementById(id);
+    el.type=el.type==='password'?'text':'password';
+    btn.style.opacity=el.type==='text'?'1':'0.4';
 }
 
-// ─── FIREBASE: SALVAR DADOS (Firestore + cache local) ───
+// Sobrescreve saveAll para salvar por usuário
 function saveAll(){
-    if(!usuarioAtual || _modoVisitante) return;
-    const uid   = usuarioAtual.id;
-    const dados = {bd,metas,cats,investimentos,recorrentes,contas,metasInv};
-    // Cache local (offline/rápido)
-    localStorage.setItem(`will_dados_${uid}`, JSON.stringify(dados));
-    // Firestore (nuvem)
-    _db.collection('usuarios').doc(uid).collection('dados').doc('financeiro')
-        .set(dados)
-        .catch(() => {}); // falha silenciosa (offline)
+    if(!usuarioAtual || _modoVisitante) return; // visitante não persiste dados
+    const dados={bd,metas,cats,investimentos,recorrentes,contas,metasInv};
+    localStorage.setItem(_chaveUsuario(usuarioAtual.id), JSON.stringify(dados));
+    localStorage.setItem('will_metas_inv_v1', JSON.stringify(metasInv));
 }
 
-// ─── FIREBASE: VERIFICAR SESSÃO (onAuthStateChanged) ───
-_auth.onAuthStateChanged(function(firebaseUser){
-    if(firebaseUser){
-        _db.collection('usuarios').doc(firebaseUser.uid).get()
-            .then(doc => {
-                const nome = doc.exists ? (doc.data().nome || firebaseUser.displayName || 'Usuário') : (firebaseUser.displayName || 'Usuário');
-                _modoVisitante = false;
-                usuarioAtual   = { id: firebaseUser.uid, nome, email: firebaseUser.email };
-                _carregarDadosUsuario(firebaseUser.uid);
-                document.getElementById('filtro-ano').value = '';
-                document.getElementById('filtro-mes').value = String(new Date().getMonth()+1).padStart(2,'0');
-                document.getElementById('login-screen').classList.add('hidden');
-                _atualizarHeaderUsuario();
-                _primeiroRender = true;
-                _alertasPeriodo = '';
-                initFiltro(); render();
-                mostrarToast(`👋 Olá, ${_primeiroNome(nome)}! Bem-vindo(a).`, 'success', 4000);
-                // Verifica se precisa importar dados migrados
-                setTimeout(_verificarImportacaoPosMigracao, 2000);
-            })
-            .catch(() => {
-                _modoVisitante = false;
-                usuarioAtual   = { id: firebaseUser.uid, nome: firebaseUser.displayName||'Usuário', email: firebaseUser.email };
-                _carregarDadosUsuario(firebaseUser.uid);
-                document.getElementById('login-screen').classList.add('hidden');
-                _atualizarHeaderUsuario();
-                _primeiroRender = true;
-                _alertasPeriodo = '';
-                initFiltro(); render();
-            });
-    } else {
-        document.getElementById('login-screen').classList.remove('hidden');
-        mostrarLogin();
-        // Verifica dados locais para migração
-        setTimeout(_verificarMigracao, 800);
-    }
-});
+// =====================================================
+//  FILTRO ANO + MÊS DUAL
+// =====================================================
+function initFiltro(){
+    const hoje   = new Date();
+    const anoHoje = String(hoje.getFullYear());
+    const mesHoje = String(hoje.getMonth()+1).padStart(2,'0');
 
+    // Coletar todos os anos presentes nos dados + ano atual
+    const anos = new Set([anoHoje]);
+    bd.forEach(i=>{ if(i.data) anos.add(i.data.substring(0,4)); });
+    investimentos.forEach(i=>{ if(i.data) anos.add(i.data.substring(0,4)); });
+
+    const selAno    = document.getElementById('filtro-ano');
+    const selMes    = document.getElementById('filtro-mes');
+    const selHidden = document.getElementById('filtro-periodo');
+
+    // Guardar seleção anterior (se existir) para não resetar ao chamar initFiltro após salvar
+    const anoAnterior = selAno.value;
+    const mesAnterior = selMes.value;
+    const temSelecaoAnterior = !!anoAnterior;
+
+    // Preencher anos
+    selAno.innerHTML = Array.from(anos).sort().reverse()
+        .map(a=>`<option value="${a}">${a}</option>`).join('');
+
+    // Definir: se já havia seleção (navegação), mantém; senão, usa mês/ano atual
+    selAno.value = temSelecaoAnterior ? (anoAnterior || anoHoje) : anoHoje;
+    selMes.value = temSelecaoAnterior ? (mesAnterior || mesHoje) : mesHoje;
+
+    // Garantir que o ano selecionado existe na lista (pode ter sido removido)
+    if(!selAno.value) selAno.value = anoHoje;
+
+    // Sincronizar campo oculto
+    const periodo = `${selAno.value}-${selMes.value}`;
+    selHidden.innerHTML = `<option value="${periodo}">${periodo}</option>`;
+    selHidden.value = periodo;
+}
+
+function sincFiltroAnoMes(){
+    const ano = document.getElementById('filtro-ano').value;
+    const mes = document.getElementById('filtro-mes').value;
+    const periodo = `${ano}-${mes}`;
+    const selH = document.getElementById('filtro-periodo');
+    selH.innerHTML = `<option value="${periodo}">${periodo}</option>`;
+    selH.value = periodo;
+    render();
+}
+
+// =====================================================
+//  MANUAL / AJUDA
+// =====================================================
+const AJUDA_TOPICOS = [
+    {
+        icone:'📊', titulo:'Dashboard',
+        tags:['dash','início','resumo','receita','despesa','saldo','economia','previsão','gráfico'],
+        conteudo:`
+<p>O <b>Dashboard</b> é a tela inicial e mostra um resumo completo do mês selecionado.</p>
+<ul>
+<li><b>Receita / Despesa / Saldo</b> — valores totais do mês (excluindo benefícios)</li>
+<li><b>Economia %</b> — percentual do que sobrou da receita</li>
+<li><b>Investimentos do Mês</b> — total aportado e rentabilidade</li>
+<li><b>Previsão para o fim do mês</b> — projeção baseada no gasto médio diário até hoje</li>
+<li><b>Gastos por Categoria</b> — gráfico de pizza; clique nas abas para ver por <b>Categoria</b> ou <b>Multi-Contas</b></li>
+<li><b>Evolução Anual</b> — gráfico de linha comparando receitas e despesas mês a mês</li>
+</ul>
+<p>💡 <b>Dica:</b> Use os seletores <b>MÊS</b> e <b>ANO</b> no header para navegar entre períodos.</p>`
+    },
+    {
+        icone:'➕', titulo:'Novo Lançamento',
+        tags:['lançamento','novo','despesa','receita','transferência','parcelado','repetir','tag','comprovante','parcelas','recorrente'],
+        conteudo:`
+<p>Toque no botão <b>verde +</b> em qualquer tela para adicionar um novo lançamento.</p>
+<h4>Tipos disponíveis:</h4>
+<ul>
+<li><b>Despesa</b> — gasto comum</li>
+<li><b>Receita</b> — entrada de dinheiro</li>
+<li><b>↔️ Transferência entre contas</b> — move saldo entre contas. O sistema cria automaticamente uma saída na conta de origem e uma entrada na conta de destino.</li>
+</ul>
+<h4>Campos principais:</h4>
+<ul>
+<li><b>Conta</b> — quando duas contas têm o mesmo nome, o tipo aparece entre parênteses (ex: Nubank (C. Corrente))</li>
+<li><b>Categoria</b> — toque em <b>➕ Nova categoria...</b> para criar uma nova sem sair da tela</li>
+<li><b>🏷️ Tags</b> — palavras-chave separadas por vírgula (ex: viagem, família). Pesquisáveis no extrato</li>
+<li><b>📎 Comprovante</b> — anexe foto ou PDF do recibo; visualize clicando no ícone 📎 no extrato</li>
+</ul>
+<h4>Parcelamento:</h4>
+<p>Marque <b>Parcelado</b> e informe o número de parcelas. O sistema gera um lançamento para cada mês, numerados como (1/10), (2/10), etc.</p>
+<ul>
+<li>Ao editar uma parcela: escolha <b>📌 Apenas este mês</b> ou <b>🔄 Este e todos os futuros</b></li>
+<li>Ao excluir uma parcela: mesmas opções</li>
+</ul>
+<h4>Repetição personalizada:</h4>
+<p>Marque <b>Repetir</b> para criar uma série com frequência:</p>
+<ul>
+<li><b>Semanal</b> — a cada 7 dias</li>
+<li><b>Quinzenal</b> — a cada 15 dias</li>
+<li><b>Mensal</b> — mesmo dia todo mês</li>
+<li><b>Anual</b> — mesmo dia todo ano</li>
+</ul>
+<p>Defina quantas vezes repetir e veja o preview da data final antes de salvar.</p>
+<p>💡 <b>Dica:</b> Parcelado e Repetir não podem ser usados ao mesmo tempo.</p>`
+    },
+    {
+        icone:'📜', titulo:'Extrato — Aba Mês',
+        tags:['extrato','mês','busca','filtro','conta','categoria','totais','xls','pdf','exportar','pago','pendente','status'],
+        conteudo:`
+<p>A aba <b>📜 Mês</b> mostra todos os lançamentos do período selecionado (exceto benefícios).</p>
+<h4>Filtros disponíveis:</h4>
+<ul>
+<li><b>Busca livre</b> — pesquisa por descrição, categoria ou <b>tag</b></li>
+<li><b>🎛️ Filtros</b> — painel expandível com:
+  <ul>
+    <li><b>Tipo</b> — Receita / Despesa</li>
+    <li><b>Status</b> — ✅ Pago / ⏳ Pendente (podem ser combinados)</li>
+    <li><b>Contas</b> — multi-seleção; botão "Todos/Nenhum" para selecionar todas</li>
+    <li><b>Categorias</b> — multi-seleção</li>
+  </ul>
+</li>
+<li>Chips coloridos mostram os filtros ativos; clique no ✕ da busca para limpar</li>
+</ul>
+<h4>Status Pago / Pendente:</h4>
+<p>Cada lançamento tem um ícone ✅ clicável:</p>
+<ul>
+<li>✅ <b>colorido</b> = pago — descrição aparece riscada e item fica levemente transparente</li>
+<li>✅ <b>acinzentado</b> = pendente</li>
+<li>Toque para alternar o status. O estado é salvo automaticamente.</li>
+</ul>
+<h4>Totalizador:</h4>
+<p>Exibe <b>Receitas | Despesas | Saldo</b> filtrados em tempo real. O rodapé mostra o total geral com aviso de que engloba ambos os tipos.</p>
+<h4>Exportação:</h4>
+<ul>
+<li><b>📊 XLS</b> — CSV compatível com Excel com os dados filtrados</li>
+<li><b>📄 PDF</b> — abre nova aba com relatório formatado para impressão</li>
+</ul>
+<p>💡 <b>Dica:</b> Para editar ou excluir um lançamento, toque em ✏️ ou ❌ ao lado do item.</p>`
+    },
+    {
+        icone:'📦', titulo:'Extrato — Aba Por Item',
+        tags:['por item','agrupado','parcelas','série','ver parcelas','recolher','ordenar','alfabético','data','xls','pdf'],
+        conteudo:`
+<p>A aba <b>📦 Por Item</b> mostra todos os lançamentos agrupados, independente do mês.</p>
+<h4>Como funciona o agrupamento:</h4>
+<ul>
+<li>Parcelamentos (ex: Iphone 10×) aparecem como <b>um único card</b> com o total e o valor por parcela</li>
+<li>Repetições e recorrentes também são agrupados automaticamente</li>
+<li>Lançamentos com mesmo nome/categoria/conta também são consolidados</li>
+<li>Clique em <b>▼ ver X parcelas</b> para expandir e gerenciar individualmente</li>
+<li>Cada parcela expandida tem seus próprios botões ✏️ e ❌</li>
+</ul>
+<h4>Filtros e ordenação:</h4>
+<ul>
+<li><b>Busca</b> — por nome, categoria ou tag</li>
+<li><b>Tipo</b> — Todos / Despesas / Receitas</li>
+<li><b>Ordenação</b> — <b>📅 Data</b> (mais recente primeiro) ou <b>🔤 A-Z</b> (alfabético)</li>
+</ul>
+<h4>Exportação:</h4>
+<p>Botões <b>📊 XLS</b> e <b>📄 PDF</b> exportam a visão consolidada com: item, conta, tipo, nº de ocorrências, valor unitário, total e período.</p>`
+    },
+    {
+        icone:'🎁', titulo:'Extrato — Aba Benefícios',
+        tags:['benefícios','ticket','alimentação','refeição','cartão benefícios','vale'],
+        conteudo:`
+<p>A aba <b>🎁 Benefícios</b> mostra exclusivamente os lançamentos das categorias:</p>
+<ul>
+<li>Ticket Alimentação</li>
+<li>Ticket Refeição</li>
+<li>Cartão Benefícios</li>
+</ul>
+<p>Esses itens <b>não aparecem</b> no Extrato Detalhado nem nos totalizadores de Receita/Despesa, pois são benefícios e não afetam diretamente o orçamento pessoal.</p>
+<h4>Saldos:</h4>
+<p>No topo da aba, cards mostram o saldo disponível de cada benefício no mês selecionado (entradas menos saídas da categoria).</p>`
+    },
+    {
+        icone:'🎯', titulo:'Metas',
+        tags:['metas','limite','categoria','orçamento','acumulado','anual','detalhamento'],
+        conteudo:`
+<p>A tela de <b>Metas</b> permite controlar o orçamento por categoria.</p>
+<h4>Aba Despesas:</h4>
+<ul>
+<li>Defina um <b>limite mensal</b> por categoria (ex: Moradia até R$ 3.000)</li>
+<li>A barra de progresso fica <b>vermelha</b> quando ultrapassa 80% do limite</li>
+<li>Toque em <b>+ Meta</b> para adicionar ou em ✏️/❌ para editar/remover</li>
+</ul>
+<h4>Acumulado do Ano:</h4>
+<p>Clique em qualquer categoria para ver o detalhamento completo:</p>
+<ul>
+<li><b>Total por despesa</b> — agrupa itens parcelados (ex: Purificador 6× R$ 80 = R$ 480)</li>
+<li><b>Detalhamento mensal</b> — subtotal por mês com todos os lançamentos</li>
+</ul>`
+    },
+    {
+        icone:'💼', titulo:'Investimentos',
+        tags:['investimentos','aportes','rentabilidade','metas','patrimônio'],
+        conteudo:`
+<p>A tela de <b>Investimentos</b> registra e acompanha seus aportes.</p>
+<ul>
+<li><b>Aportado no mês</b> — total investido no período selecionado</li>
+<li><b>Rentabilidade</b> — percentual de rendimento informado</li>
+<li>Metas de investimento com barra de progresso para acompanhar seu patrimônio</li>
+</ul>
+<p>💡 <b>Dica:</b> Registre seus investimentos mensalmente para ter uma visão clara da evolução patrimonial no gráfico anual do Dashboard.</p>`
+    },
+    {
+        icone:'🔁', titulo:'Fixas (Recorrentes)',
+        tags:['fixas','recorrentes','automático','contas fixas','mensal','gerar'],
+        conteudo:`
+<p>A tela de <b>Fixas</b> gerencia despesas e receitas que se repetem todo mês.</p>
+<ul>
+<li>Cadastre uma vez e o sistema sugere o lançamento automaticamente cada mês</li>
+<li>Toque em <b>Gerar</b> para confirmar um lançamento recorrente no mês atual</li>
+<li>Um alerta no sino aparece quando há recorrentes pendentes de lançamento</li>
+</ul>
+<p>💡 <b>Diferença entre Fixas e Repetição:</b> Fixas são templates que você confirma mês a mês. Repetição (no lançamento) cria todos os registros de uma vez.</p>`
+    },
+    {
+        icone:'🏦', titulo:'Multi-Contas',
+        tags:['contas','banco','cartão','corrente','poupança','débito','crypto','transferência','mesmo nome'],
+        conteudo:`
+<p>Gerencie todas as suas contas em <b>Configurações → Gestão Multi-Contas</b>.</p>
+<h4>Tipos de conta disponíveis:</h4>
+<p>C. Corrente · C. Poupança · Cartão de Crédito · Cartão de Débito · Carteira · Investimento · Crypto</p>
+<h4>Contas com mesmo nome:</h4>
+<p>Se duas contas tiverem o mesmo nome (ex: dois Nubanks), o sistema automaticamente mostra o tipo entre parênteses em todos os lugares:</p>
+<ul>
+<li>No modal de lançamento: <b>Nubank (C. Corrente)</b> e <b>Nubank (Cartão de Crédito)</b></li>
+<li>No chip do extrato: diferenciados pela cor e nome completo</li>
+</ul>
+<h4>Editar conta:</h4>
+<p>Toque em ✏️ ao lado de uma conta para alterar nome e tipo via modal dedicado.</p>
+<h4>Excluir conta:</h4>
+<p>Toque em ❌. Se houver lançamentos vinculados, o sistema avisa quantos ficaram sem conta.</p>
+<h4>Transferência entre contas:</h4>
+<p>No lançamento, selecione <b>↔️ Transferência entre contas</b>. O sistema cria automaticamente uma saída na conta de origem e uma entrada na conta de destino.</p>
+<h4>Filtro por conta no Extrato:</h4>
+<p>No painel de filtros, filtre por <b>tipo de conta</b> (ex: todos os Cartões de Crédito juntos) ou por <b>conta específica</b>.</p>`
+    },
+    {
+        icone:'🏷️', titulo:'Categorias',
+        tags:['categorias','nova categoria','receita','despesa','gerenciar'],
+        conteudo:`
+<p>Gerencie categorias em <b>Configurações → Gestão de Categorias</b>.</p>
+<ul>
+<li>Categorias separadas por <b>Receita</b> e <b>Despesa</b></li>
+<li>Para criar uma nova categoria <b>durante</b> um lançamento, selecione <b>➕ Nova categoria...</b> no select de categoria</li>
+<li>A nova categoria é salva automaticamente e fica disponível em toda a aplicação</li>
+</ul>
+<p>⚠️ <b>Atenção:</b> As categorias <b>Ticket Alimentação</b>, <b>Ticket Refeição</b> e <b>Cartão Benefícios</b> são especiais — ficam na aba Benefícios e não aparecem no extrato comum.</p>`
+    },
+    {
+        icone:'🔐', titulo:'Login e Perfil',
+        tags:['login','cadastro','senha','recuperar','foto','perfil','visitante'],
+        conteudo:`
+<h4>Acesso:</h4>
+<ul>
+<li><b>Login normal</b> — e-mail e senha cadastrados</li>
+<li><b>👀 Visitante</b> — acesso sem cadastro; os dados não são salvos ao sair</li>
+<li><b>Esqueceu a senha?</b> — informe o e-mail, receba um código de 6 dígitos (válido 10 min), insira o código e defina nova senha</li>
+</ul>
+<h4>Foto de perfil:</h4>
+<p>Toque no avatar (círculo com sua inicial) → <b>Editar Perfil</b> → toque na foto para selecionar uma imagem do dispositivo. A foto fica salva localmente.</p>
+<h4>Múltiplos usuários:</h4>
+<p>O sistema suporta múltiplos cadastros. Cada usuário tem seus próprios dados completamente isolados.</p>`
+    },
+    {
+        icone:'💾', titulo:'Backup e Exportação',
+        tags:['backup','exportar','importar','json','csv','pdf','restaurar','dados'],
+        conteudo:`
+<p>Acesse em <b>Configurações → Sistema</b>.</p>
+<ul>
+<li><b>📦 Exportar Backup JSON</b> — salva todos os dados em arquivo JSON para restauração futura</li>
+<li><b>📊 Exportar CSV (Excel)</b> — exporta os lançamentos em formato compatível com Excel</li>
+<li><b>📄 Exportar Resumo PDF</b> — relatório formatado para impressão/arquivamento</li>
+<li><b>📥 Importar Backup</b> — restaura dados a partir de um backup JSON exportado anteriormente</li>
+</ul>
+<p>💡 <b>Recomendação:</b> Faça backup mensalmente. Os dados ficam salvos no <b>localStorage</b> do navegador — limpar o cache do browser apaga os dados.</p>`
+    },
+    {
+        icone:'🌙', titulo:'Tema Claro / Escuro',
+        tags:['tema','escuro','claro','dark','modo'],
+        conteudo:`
+<p>Toque no ícone <b>🌙 / ☀️</b> no header para alternar entre tema claro e escuro.</p>
+<p>A preferência é salva automaticamente e mantida entre sessões.</p>`
+    },
+    {
+        icone:'✅', titulo:'Status Pago / Pendente',
+        tags:['pago','pendente','status','check','marcar','pagar','filtro status'],
+        conteudo:`
+<p>Cada lançamento no <b>Extrato — Aba Mês</b> tem um indicador de status.</p>
+<h4>Como usar:</h4>
+<ul>
+<li>Toque no ícone <b>✅</b> ao lado do valor para alternar o status</li>
+<li>✅ <b>colorido</b> = <b>Pago</b> — descrição aparece riscada, item levemente transparente e mostra "✅ Pago" na linha de data</li>
+<li>✅ <b>acinzentado</b> = <b>Pendente</b> — mostra "⏳ Pendente" na linha de data</li>
+<li>O status é salvo automaticamente</li>
+</ul>
+<h4>Filtrar por status:</h4>
+<p>No painel <b>🎛️ Filtros</b>, seção <b>Status</b>:</p>
+<ul>
+<li>Marque <b>✅ Pago</b> para ver apenas os já pagos</li>
+<li>Marque <b>⏳ Pendente</b> para ver apenas os pendentes</li>
+<li>Marque ambos para ver os dois (sem filtro de status)</li>
+</ul>
+<p>O filtro de status se combina com todos os outros filtros (tipo, conta, categoria, busca).</p>
+<p>💡 <b>Dica:</b> Use o filtro "⏳ Pendente" no início do mês para ver rapidamente o que ainda falta pagar.</p>`
+    },
+    {
+        icone:'📖', titulo:'Manual Integrado',
+        tags:['manual','ajuda','help','instruções','como usar','buscar','pesquisar'],
+        conteudo:`
+<p>O <b>Manual</b> está sempre disponível dentro do app — sem precisar acessar documentação externa.</p>
+<h4>Como acessar:</h4>
+<p>Toque no botão <b>❓</b> no header (ao lado do ícone de tema 🌙).</p>
+<h4>Funcionalidades:</h4>
+<ul>
+<li><b>15 tópicos</b> cobrindo todas as funcionalidades do app</li>
+<li>Toque em qualquer tópico para expandir e ler o conteúdo</li>
+<li><b>Busca inteligente</b> — filtra por título, tags e conteúdo simultaneamente</li>
+<li>Se só um resultado → abre automaticamente</li>
+</ul>
+<p>💡 <b>Dica:</b> Pesquise palavras como "pago", "parcela", "exportar", "backup" para ir direto ao tópico relevante.</p>`
+    },
+    {
+        icone:'🔔', titulo:'Notificações e Alertas',
+        tags:['notificações','alertas','sino','badge','avisos'],
+        conteudo:`
+<p>O sino 🔔 no header exibe avisos importantes:</p>
+<ul>
+<li><b>Metas estourando</b> — quando o gasto ultrapassa 80% do limite definido</li>
+<li><b>Recorrentes pendentes</b> — despesas/receitas fixas ainda não lançadas no mês</li>
+<li><b>Saldo negativo</b> — quando despesas superam receitas</li>
+</ul>
+<p>Os alertas aparecem como <b>toasts</b> (mensagens flutuantes) apenas no <b>primeiro acesso</b> do dia. Nas navegações seguintes, apenas o número no badge é atualizado.</p>
+<p>Clique no sino para ver a lista completa de notificações pendentes.</p>`
+    },
+    {
+        icone:'📱', titulo:'Uso Mobile / PWA',
+        tags:['mobile','celular','pwa','app','instalar','ios','android','safari','chrome'],
+        conteudo:`
+<p>O Financeiro Pro foi projetado para uso no celular.</p>
+<h4>Instalar como app (PWA):</h4>
+<ol>
+<li>Acesse pelo <b>Chrome</b> no Android ou <b>Safari</b> no iPhone</li>
+<li>Toque no menu do navegador</li>
+<li>Selecione <b>"Adicionar à tela inicial"</b></li>
+<li>O app aparece na tela inicial como um ícone nativo</li>
+</ol>
+<h4>Funciona offline:</h4>
+<p>Todos os dados ficam no dispositivo. Não é necessária conexão com internet para usar o app após instalado.</p>
+<p>⚠️ <b>Importante:</b> Os dados ficam no armazenamento local do navegador. Se trocar de dispositivo ou limpar o cache, faça backup antes.</p>`
+    }
+];
+
+function renderAjuda(topicos){
+    const el = document.getElementById('ajuda-lista');
+    if(!el) return;
+    el.innerHTML = topicos.map((t,idx) => `
+        <div style="border:1px solid var(--border);border-radius:12px;margin-bottom:8px;overflow:hidden;">
+            <button onclick="toggleAjudaTopico(${idx})"
+                style="width:100%;display:flex;align-items:center;gap:10px;padding:12px 14px;
+                       background:var(--surface);border:none;cursor:pointer;text-align:left;">
+                <span style="font-size:1.3rem;flex-shrink:0;">${t.icone}</span>
+                <span style="flex:1;font-weight:700;font-size:0.88rem;color:var(--text);">${t.titulo}</span>
+                <span id="ajuda-arrow-${idx}" style="color:var(--muted);font-size:0.8rem;transition:transform 0.2s;">▼</span>
+            </button>
+            <div id="ajuda-conteudo-${idx}" style="display:none;padding:0 14px 14px;font-size:0.82rem;line-height:1.65;color:var(--text);">
+                <div style="border-top:1px solid var(--border);padding-top:12px;">${t.conteudo}</div>
+            </div>
+        </div>`).join('');
+}
+
+function toggleAjudaTopico(idx){
+    const el  = document.getElementById(`ajuda-conteudo-${idx}`);
+    const arr = document.getElementById(`ajuda-arrow-${idx}`);
+    if(!el) return;
+    const open = el.style.display !== 'none';
+    el.style.display = open ? 'none' : 'block';
+    if(arr) arr.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+function filtrarAjuda(){
+    const q = (document.getElementById('ajuda-busca').value||'').toLowerCase().trim();
+    if(!q){ renderAjuda(AJUDA_TOPICOS); return; }
+    const filtrados = AJUDA_TOPICOS.filter(t =>
+        t.titulo.toLowerCase().includes(q) ||
+        t.tags.some(tag => tag.includes(q)) ||
+        t.conteudo.toLowerCase().includes(q)
+    );
+    renderAjuda(filtrados);
+    // Auto-abre se só um resultado
+    if(filtrados.length === 1){
+        setTimeout(()=>toggleAjudaTopico(0), 50);
+    }
+}
+
+// =====================================================
+//  INIT
+// =====================================================
+applyDark();
+
+// Verificar sessão salva
+(function verificarSessao(){
+    const sess = JSON.parse(localStorage.getItem('will_sessao')||'null');
+    if(sess){
+        const users=_usuarios();
+        const user=users.find(u=>u.id===sess.id);
+        if(user){
+            usuarioAtual=user;
+            _carregarDadosUsuario(user.id);
+            document.getElementById('login-screen').classList.add('hidden');
+            _atualizarHeaderUsuario();
+            // Garante que alertas apareçam como toasts no primeiro render após retomada de sessão
+            _primeiroRender = true;
+            _alertasPeriodo = '';
+            initFiltro(); render();
+            return;
+        }
+    }
+    // Sem sessão — mostrar login
+    document.getElementById('login-screen').classList.remove('hidden');
+})();
 </script>
 <!-- ===== BOTÃO VOLTAR AO TOPO ===== -->
 <button id="btn-top" onclick="document.querySelector('.content-area').scrollTo({top:0,behavior:'smooth'})"
